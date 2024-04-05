@@ -108,6 +108,8 @@ reference_data_keys	=	[	   "aloh5",    "aloh4w",          "d1",           "d3",
 					            "NSA1",   "NSAb200",     "NSAb100",      "NSAb500"
 						]
 
+energy_reference	=	createParameters(keys = reference_data_keys, values = reference_data)
+
 constraints_data	=	[	 1,  2,   2,   2,
 							 1,  1,   8,  15,
 							15, 15, 304, 304
@@ -164,7 +166,7 @@ for item in training_set:
 			dist_exclusion_data.append(item)
 
 def clean_slate() -> None:
-	os.system("rm -r *log *.err *.frc *.q ener.dat")
+	os.system("rm -r *log *.frc *.q ener.dat")
 
 def create_LAMMPS_Input(parameters: typing.Dict[str, str]) -> None:
 	filename	=	parameters["filename"]
@@ -484,28 +486,65 @@ def param_optimizer(*args) -> typing.List[float]:
 
 		if system.find("traj") == -1 and system.find("scan") == -1:
 			if system in pressure_data_keys:
-				ff_data					=	ener_dat[system][3:]
+				ff_data					=	ener_dat[system][2:]
 				ref_data				=	pressure_data_values[system]
 				error_p_file			=	[abs(ff_value - ref_value) for (ff_value, ref_value) in zip(ff_data, ref_data)]
 				error_pressure[system]	=	numpy.mean(numpy.array(error_p_file))
 
 	# Now take care of reactions
-	
+	reaction_energies	=	[	10.0 * error_energy["gibSEowCNAlAltraj"],
+								0.0 * error_energy["gibSEowtraj"],
+								0.0 * error_energy["al6OHtraj"],
+								0.0 * error_energy["al6H2Otraj"],
+								0.0 * error_energy["al6AlAltraj"],
+								0.0 * error_energy["3m1traj"],
+								0.0 * error_energy["d2btod3traj"],
+								0.0 * error_energy["2m1tod2btraj"],
+								5.0 * error_energy["d2tod1traj"],
+								0.0 * error_energy["32wOOtraj"],
+								5.0 * error_energy["32wOHtraj"],
+								5.0 * error_energy["NaOH30wPTtraj"],
+								5.0 * error_energy["m1NaOHPTtraj"],
+								5.0 * error_energy["32wtraj"],
+								0.0 * error_energy["32wPTtraj"],
+								0.0 * error_energy["2m10traj"],
+								0.0 * error_energy["2m1btraj"],
+								0.0 * error_energy["2m1ctraj"],
+								00./133 * error_energy["m1NaOHtraj"],
+								4.0 * error_energy["aloh42h2obtraj"],
+								0.0 * error_energy["aloh4scanAlOH"],
+								0.0 * error_energy["wscan"],
+								0.0 * error_energy["d1scan"],
+								2.0 * error_energy["aloh4toaloh5scan"],
+								2.0 * error_energy["2m1tod3scan"],
+								1.00 * (1 * (ener_dat["d3na"][0] 	- (2 * ener_dat["aloh4na"][0])) - (energy_reference["d3na"])),
+								5.00 * (1 * (ener_dat["w2"][0]   	- (2 * ener_dat["w"][0])) 		- (energy_reference["w2"])),
+								5.00 * (1 * (ener_dat["w6"][0]   	- (6 * ener_dat["w"][0]))		- (energy_reference["w6"])),
+								1.00 * (1 * (ener_dat["d1na"][0] 	+ ener_dat["w"][0] 			 	- (2 * ener_dat["aloh4na"][0])) - (energy_reference["d1na"])),
+								0.25 * (1 * (ener_dat["Na5w"][0]   	- (5 * ener_dat["w"][0]		 	+ ener_dat["Na"][0]))			- (energy_reference["Na5w"])),
+								1.00 * (1 * (ener_dat["Naw"][0]		- (ener_dat["w"][0]				+ ener_dat["Na"][0]))			- (energy_reference["Naw"])),
+								0.50 * (1 * (ener_dat["gib001"][0] 	- (ener_dat["gib001top"][0]		+ ener_dat["gib001bot"][0]))	- (energy_reference["gib001"])),
+								0.50 * (1 * (ener_dat["gib825"][0] 	- (ener_dat["gibbulk"][0]))		- (energy_reference["gib825"])),
+								0.25 * (1 * (ener_dat["gib110"][0] 	- (ener_dat["gibbulk"][0]))		- (energy_reference["gib110"]))
+							]
+
 	# Now compute error terms
 	fmax_error		=	error_fmax
 	charge_error	=	numpy.sqrt(numpy.mean(numpy.array([charge**2 for (key,value) in error_charge.items() for charge in value])))
-	reactions_error	=	None
+	reactions_error	=	numpy.sqrt(numpy.mean(numpy.array([energy**2 for energy in reaction_energies])))
 	force_error		=	numpy.mean(numpy.array([value**2 for (key,value) in error_force.items()]))
 	pressure_error	=	numpy.mean(numpy.array([value**2 for (key,value) in error_pressure.items()]))
-	print(charge_error, force_error, fmax_error, pressure_error)
+
+	# Now we need to compute the final error
+	final_error		=	((0.05 * fmax_error) + (300 * charge_error) + (0.005 * force_error) + (1 * reactions_error) + (2.5e-6 * pressure_error)) / (300 + 1 + 0.05 + 0.005 + 2.5e-6)
+	print("{:10.3f}".format(final_error))
+	return final_error
 
 def main() -> None:
 	clean_slate()	# remove files from previous runs
-	margin		=	float(sys.argv[1])	# get the margin for fitting from user
-	minParams	=	paramVector_2 - (margin * abs(paramVector_2))	# lower bound for parameters
-	maxParams	=	paramVector_2 + (margin * abs(paramVector_2))	# upper bound for parameters
-	
+	margin		=	float(sys.argv[1])	# get the margin for fitting from user	
 	first_minimization	=	scipy.optimize.minimize(param_optimizer, paramVector_2, method='Nelder-Mead',options={'adaptive': True,'maxiter': 2});
+	print(first_minimization)
 
 	# first do a global minimization 
 	optimizer			=	nlopt.opt(nlopt.G_MLSL_LDS, paramVector_2.size)	
@@ -513,12 +552,15 @@ def main() -> None:
 	optimizer.set_local_optimizer(local_optimizer)
 	local_optimizer.set_xtol_rel(1e-3)
 
+	minParams	=	first_minimization - (margin * abs(first_minimization))	# lower bound for parameters
+	maxParams	=	first_minimization + (margin * abs(first_minimization))	# upper bound for parameters
+
 	optimizer.set_lower_bounds(minParams)
 	optimizer.set_upper_bounds(maxParams)
 	optimizer.set_min_objective(param_optimizer)
 
 	# Now perform the optimization
-	optimized_values	=	optimizer.optimize(paramVector_2)
+	optimized_values	=	optimizer.optimize(first_minimization)
 	print(optimized_values)
 
 if __name__ == '__main__':
