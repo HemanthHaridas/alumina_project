@@ -536,32 +536,33 @@ def param_optimizer(*args) -> typing.List[float]:
 	pressure_error	=	numpy.mean(numpy.array([value**2 for (key,value) in error_pressure.items()]))
 
 	# Now we need to compute the final error
-	final_error		=	((0.05 * fmax_error) + (300 * charge_error) + (0.005 * force_error) + (1 * reactions_error) + (2.5e-6 * pressure_error)) / (300 + 1 + 0.05 + 0.005 + 2.5e-6)
+	final_error		=	100 * ((0.0005 * fmax_error) + (300 * charge_error) + (0.005 * force_error) + (1 * reactions_error) + (2.5e-6 * pressure_error)) / (300 + 1 + 0.05 + 0.005 + 2.5e-6)
 	print("{:10.3f}".format(final_error))
 	return final_error
 
 def main() -> None:
 	clean_slate()	# remove files from previous runs
-	margin		=	float(sys.argv[1])	# get the margin for fitting from user	
-	first_minimization	=	scipy.optimize.minimize(param_optimizer, paramVector_2, method='Nelder-Mead',options={'adaptive': True,'maxiter': 2});
-	print(first_minimization)
+	margin		=	float(sys.argv[1])	# get the margin for fitting from user
+
+	first_minimization	=	scipy.optimize.minimize(param_optimizer, paramVector_2, method='Nelder-Mead',options={'adaptive': True,'maxiter': 200000})
+	print(first_minimization.x)
 
 	# first do a global minimization 
-	optimizer			=	nlopt.opt(nlopt.G_MLSL_LDS, paramVector_2.size)	
-	local_optimizer		=	nlopt.opt(nlopt.LN_SBPLX, paramVector_2.size)
-	optimizer.set_local_optimizer(local_optimizer)
-	local_optimizer.set_xtol_rel(1e-3)
+	# optimizer			=	nlopt.opt(nlopt.G_MLSL_LDS, paramVector_2.size)	
+	# local_optimizer		=	nlopt.opt(nlopt.LN_SBPLX, paramVector_2.size)
+	# optimizer.set_local_optimizer(local_optimizer)
+	# local_optimizer.set_xtol_rel(1e-3)
 
-	minParams	=	first_minimization - (margin * abs(first_minimization))	# lower bound for parameters
-	maxParams	=	first_minimization + (margin * abs(first_minimization))	# upper bound for parameters
+	# minParams	=	first_minimization - (margin * abs(first_minimization))	# lower bound for parameters
+	# maxParams	=	first_minimization + (margin * abs(first_minimization))	# upper bound for parameters
 
-	optimizer.set_lower_bounds(minParams)
-	optimizer.set_upper_bounds(maxParams)
-	optimizer.set_min_objective(param_optimizer)
+	# optimizer.set_lower_bounds(minParams)
+	# optimizer.set_upper_bounds(maxParams)
+	# optimizer.set_min_objective(param_optimizer)
 
-	# Now perform the optimization
-	optimized_values	=	optimizer.optimize(first_minimization)
-	print(optimized_values)
+	# # Now perform the optimization
+	# optimized_values	=	optimizer.optimize(first_minimization)
+	# print(optimized_values)
 
 if __name__ == '__main__':
 	main()
