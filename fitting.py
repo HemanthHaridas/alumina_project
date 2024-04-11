@@ -120,15 +120,19 @@ constraints_data_keys	=	[	  "h3oho", "o2h3ts",       "o2h3m",         "Nawc",
 								"d2ohts2", "d2ohts", "gibSE_h2oup", "gibSE_bothup"
 							]
 
-
-counter_data	=	[	8,  9,  8, 17,
-						2,  3,  5,  5,
-					   12, 19, 19
+#counter_data	=	[	8,  9,  8, 17,
+#						2,  3,  5,  5,
+#					   12, 19, 19
+#					]
+# Maxime - corrected counter_data 
+counter_data	=	[	[8,9], [8,9], [8,9], 
+								  [17,18], [2,3], [5,6], [5,6], 
+									[12,13], [19,20], [19,20]
 					]
 
-counter_data_keys	=	[		   "H3Ow",  "h5o2m", "h5o2ts",             "Na5w",
-							  		 "Na",   "Nawc",    "Naw", "aloh4toaloh5scan",
-					    	"2m1tod3scan", "d1scan"
+counter_data_keys	=	[ "H3Ow", "h5o2m", "h5o2ts", 
+								      "Na5w", "Na", "Nawc", "Naw", 
+											"aloh4toaloh5scan",	"2m1tod3scan", "d1scan"
 						]
 
 pbc_data		=	["NSA", "gib", "boehmite"]
@@ -145,25 +149,28 @@ pressure_data_keys		=	["gibbulk", "boehmiteb"]
 pressure_data_values	=	{  "gibbulk" : [6657, 4512, 4963,  499, 350,  140],
 							 "boehmiteb" : [ 110,  105,  112, -672, -10, 2706]
 							}
+#Maxime: replaced charge exclusion with charge inclusion
+charge_do = [ "aloh4na", "d1na", "d3na", "Na5w", "NaOH", "Na", "Naw", "w2", "w6", "w" ]
 # Exclusions
-charge_exclusion	=	pbc_data_keys + [	 "aloh4w", "aloh3wOHTS",          "d2ohts2",  "aloh3w3",
-							"aloh3w2",    "aloh6na", "aloh42h2o_wshell",    "2m1na",
-							 "d12naw",        "d2b",         "al3o3oh6",  "al3oh12",
-						   "al4o3oh9",    "al6oh18",         "al6oh182", "al3oh9na"
-						]
-charge_exclusion	=	charge_exclusion + [x for x in training_set if x.find("scan") != -1]
-charge_exclusion	=	charge_exclusion + [x for x in training_set if x.find("traj") != -1]
+#charge_exclusion	=	pbc_data_keys + [	 "aloh4w", "aloh3wOHTS",          "d2ohts2",  "aloh3w3",
+#							"aloh3w2",    "aloh6na", "aloh42h2o_wshell",    "2m1na",
+#							 "d12naw",        "d2b",         "al3o3oh6",  "al3oh12",
+#						   "al4o3oh9",    "al6oh18",         "al6oh182", "al3oh9na"
+#						]
+#charge_exclusion	=	charge_exclusion + [x for x in training_set if x.find("scan") != -1]
+#charge_exclusion	=	charge_exclusion + [x for x in training_set if x.find("traj") != -1]
 
-xyz_exclusion		=	["aloh42h2o_wshell"]
-xyz_exclusion		=	xyz_exclusion + [x for x in training_set if x.find("scan") != -1]
-xyz_exclusion		=	xyz_exclusion + [x for x in training_set if x.find("traj") != -1]
-
-dist_exclusion		=	pbc_data_keys + ["Na"]
-dist_exclusion_data	=	[]
-for item in training_set:
-	for comp in dist_exclusion:
-		if item.find(comp) != -1:
-			dist_exclusion_data.append(item)
+#Maxime: not needed
+#xyz_exclusion		=	["aloh42h2o_wshell"]
+#xyz_exclusion		=	xyz_exclusion + [x for x in training_set if x.find("scan") != -1]
+#xyz_exclusion		=	xyz_exclusion + [x for x in training_set if x.find("traj") != -1]
+#
+#dist_exclusion		=	pbc_data_keys + ["Na"]
+#dist_exclusion_data	=	[]
+#for item in training_set:
+#	for comp in dist_exclusion:
+#		if item.find(comp) != -1:
+#			dist_exclusion_data.append(item)
 
 def clean_slate() -> None:
 	os.system("rm -r *log *.frc *.q ener.dat")
@@ -216,11 +223,12 @@ def create_LAMMPS_Input(parameters: typing.Dict[str, str]) -> None:
 		inputObject.write("\n"*1)
 
 		# define required groups
-		inputObject.write("group constr {}\n".format(parameters["constraint"]))
+		#Maxime: constr not needed
+		#inputObject.write("group constr {}\n".format(parameters["constraint"]))
 		inputObject.write("group counter {}\n".format(parameters["counter"]))
-		inputObject.write("group fixed union constr counter\n")
+		#inputObject.write("group fixed union constr counter\n")
 		inputObject.write("group todump subtract all counter\n")
-		inputObject.write("fix 2 counter setforce 0.0 0.0 0.0\n")
+		#inputObject.write("fix 2 counter setforce 0.0 0.0 0.0\n")
 		inputObject.write("\n"*1)
 
 		# check for conditional arguments
@@ -376,14 +384,20 @@ def run_lammps(*args):
 			constraint 	=	"empty"
 
 		if system in counter_data_keys:
-			counter 	=	"id {}".format(counters[system])
+      #Maxime: counters are arrays#
+			#counter 	=	"id {}".format(counters[system])
+			counter 	=	"id {}".format(' '.join(map(str, counters[system])))
+			#print(counter);sys.exit()
 		else:
 			counter 	=	"empty"
-
-		if system in charge_exclusion:
-			parameters["qdump"]	=	"F"
-		else:
+    #Maxime edit
+		#if system in charge_exclusion:
+		if system in charge_do:
+						#parameters["qdump"]	=	"F"
 			parameters["qdump"]	=	"T"
+		else:
+						#parameters["qdump"]	=	"T"
+			parameters["qdump"]	=	"F"
 
 		parameters["constraint"]	=	constraint
 		parameters["counter"]		=	counter
@@ -420,7 +434,9 @@ def param_optimizer(*args) -> typing.List[float]:
 
 	for system in training_set:
 		# calculate differences in charges
-		if system not in charge_exclusion:
+		#Maxime edit
+		#if system not in charge_exclusion:
+		if system in charge_do:
 			xyz_file	=	f"./data/xyz/{system}.xyz"
 			esp_file	=	f"./data/esp/{system}.esp"
 			charge_file	=	f"{system}.q"
@@ -429,6 +445,7 @@ def param_optimizer(*args) -> typing.List[float]:
 				charge_data				=	[float(data.split()[-1]) for data in chargeObject.readlines()[9:]]
 				error_q_file			=	[(esp_value - charge_value) for (esp_value, charge_value) in zip(esp_data, charge_data)]
 				error_charge[system]	=	[x for x in error_q_file]
+				#print (system, error_charge[system])
 		
 		# First process the scans
 		# calculate differences in energies
@@ -464,11 +481,14 @@ def param_optimizer(*args) -> typing.List[float]:
 			log_file		=	f"./{system}.log"
 			with open(energy_file) as energyObject, open(log_file) as logObject:
 				energy_ref				=	numpy.array([float(data.split()[-1]) for data in energyObject.readlines()])
-				energy_ref_s			=	energy_ref - min(energy_ref)
+				#Maxime: To get the same error as mine
+				#energy_ref_s			=	energy_ref - min(energy_ref)
+				energy_ref_s			=	energy_ref - numpy.mean(energy_ref)
 				nlines					=	len(energy_ref) + 3
 				_ff_energy				=	[data for data in logObject.readlines()[-1 * nlines:]][:-3]
 				ff_energy 				=	numpy.array([float(data.split()[0]) for data in _ff_energy])
-				ff_energy_s				=	ff_energy - min(ff_energy)
+				#ff_energy_s				=	ff_energy - min(ff_energy)
+				ff_energy_s				=	ff_energy - numpy.mean(ff_energy)
 				error_e_file			=	[abs(ff_value - ref_value) for (ff_value, ref_value) in zip(ff_energy_s, energy_ref_s)]
 				error_energy[system]	=	numpy.mean(numpy.array(error_e_file))
 
@@ -493,35 +513,37 @@ def param_optimizer(*args) -> typing.List[float]:
 				error_pressure[system]	=	numpy.mean(numpy.array(error_p_file))
 
 	# Now take care of reactions
-	reaction_energies	=	[	10.0 * error_energy["gibSEowCNAlAltraj"],
-								0.0 * error_energy["gibSEowtraj"],
-								0.0 * error_energy["al6OHtraj"],
-								0.0 * error_energy["al6H2Otraj"],
-								0.0 * error_energy["al6AlAltraj"],
-								0.0 * error_energy["3m1traj"],
-								0.0 * error_energy["d2btod3traj"],
-								0.0 * error_energy["2m1tod2btraj"],
-								5.0 * error_energy["d2tod1traj"],
-								0.0 * error_energy["32wOOtraj"],
-								5.0 * error_energy["32wOHtraj"],
+	#Maxime: corrected weights
+	reaction_energies	=	[
+							10.0 * error_energy["gibSEowCNAlAltraj"],
+							10.0 * error_energy["gibSEowtraj"],
+							10.0 * error_energy["al6OHtraj"],
+							10.0 * error_energy["al6H2Otraj"],
+							10.0 * error_energy["al6AlAltraj"],
+							10.0 * error_energy["3m1traj"],
+							10.0 * error_energy["d2btod3traj"],
+							10.0 * error_energy["2m1tod2btraj"],
+							15.0 * error_energy["d2tod1traj"],
+							50.0 * error_energy["32wOOtraj"],
+							25.0 * error_energy["32wOHtraj"],
 								5.0 * error_energy["NaOH30wPTtraj"],
 								5.0 * error_energy["m1NaOHPTtraj"],
 								5.0 * error_energy["32wtraj"],
-								0.0 * error_energy["32wPTtraj"],
-								0.0 * error_energy["2m10traj"],
-								0.0 * error_energy["2m1btraj"],
-								0.0 * error_energy["2m1ctraj"],
-								00./133 * error_energy["m1NaOHtraj"],
+								10.0 * error_energy["32wPTtraj"],
+								10.0 * error_energy["2m10traj"],
+								10.0 * error_energy["2m1btraj"],
+								10.0 * error_energy["2m1ctraj"],
+								300./133 * error_energy["m1NaOHtraj"],
 								4.0 * error_energy["aloh42h2obtraj"],
-								0.0 * error_energy["aloh4scanAlOH"],
-								0.0 * error_energy["wscan"],
-								0.0 * error_energy["d1scan"],
+								10.0 * error_energy["aloh4scanAlOH"],
+								20.0 * error_energy["wscan"],
+								10.0 * error_energy["d1scan"],
 								2.0 * error_energy["aloh4toaloh5scan"],
 								2.0 * error_energy["2m1tod3scan"],
 								1.00 * (1 * (ener_dat["d3na"][0] 	- (2 * ener_dat["aloh4na"][0])) - (energy_reference["d3na"])),
+								1.00 * (1 * (ener_dat["d1na"][0] 	+ ener_dat["w"][0] 			 	- (2 * ener_dat["aloh4na"][0])) - (energy_reference["d1na"])),
 								5.00 * (1 * (ener_dat["w2"][0]   	- (2 * ener_dat["w"][0])) 		- (energy_reference["w2"])),
 								5.00 * (1 * (ener_dat["w6"][0]   	- (6 * ener_dat["w"][0]))		- (energy_reference["w6"])),
-								1.00 * (1 * (ener_dat["d1na"][0] 	+ ener_dat["w"][0] 			 	- (2 * ener_dat["aloh4na"][0])) - (energy_reference["d1na"])),
 								0.25 * (1 * (ener_dat["Na5w"][0]   	- (5 * ener_dat["w"][0]		 	+ ener_dat["Na"][0]))			- (energy_reference["Na5w"])),
 								1.00 * (1 * (ener_dat["Naw"][0]		- (ener_dat["w"][0]				+ ener_dat["Na"][0]))			- (energy_reference["Naw"])),
 								0.50 * (1 * (ener_dat["gib001"][0] 	- (ener_dat["gib001top"][0]		+ ener_dat["gib001bot"][0]))	- (energy_reference["gib001"])),
@@ -535,10 +557,25 @@ def param_optimizer(*args) -> typing.List[float]:
 	reactions_error	=	numpy.sqrt(numpy.mean(numpy.array([energy**2 for energy in reaction_energies])))
 	force_error		=	numpy.mean(numpy.array([value**2 for (key,value) in error_force.items()]))
 	pressure_error	=	numpy.mean(numpy.array([value**2 for (key,value) in error_pressure.items()]))
-
+  #
 	# Now we need to compute the final error
-	final_error		=	100 * ((0.0005 * fmax_error) + (300 * charge_error) + (0.005 * force_error) + (1 * reactions_error) + (2.5e-6 * pressure_error)) / (300 + 1 + 0.05 + 0.005 + 2.5e-6)
-	print("{:10.3f}".format(final_error))
+	charge_w = 300.
+	reactions_w  = 1.
+	force_w  = 0.05
+	fmax_w   = 0.005
+	pressure_w   = 2.5e-6
+
+	errors  = [ charge_error, reactions_error, force_error, fmax_error, pressure_error ]
+	weights = [ charge_w, reactions_w, force_w, fmax_w, pressure_w ]
+	for i in range(len(errors)):
+		errors[i] *= weights[i]
+
+	final_error		=	100 * sum(errors) / sum(weights)
+  #### PRINTING #####
+	#Print all energy errors
+	print (reaction_energies)
+	#Print all errors
+	print (' '.join(f"{error:.2f}" for error in errors) )
 	return final_error
 
 def main() -> None:
