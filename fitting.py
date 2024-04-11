@@ -543,8 +543,11 @@ def param_optimizer(*args) -> typing.List[float]:
 
 def main() -> None:
 	clean_slate()	# remove files from previous runs
-	margin		=	float(sys.argv[1])	# get the margin for fitting from user
+  
+	param_optimizer(paramVector_2)
+	sys.exit()
 
+	margin		=	float(sys.argv[1])	# get the margin for fitting from user
 	first_minimization	=	scipy.optimize.minimize(param_optimizer, paramVector_2, method='Nelder-Mead',options={'adaptive': True,'maxiter': 200000})
 	print(first_minimization.x)
 
