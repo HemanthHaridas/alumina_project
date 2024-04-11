@@ -186,7 +186,8 @@ def create_LAMMPS_Input(parameters: typing.Dict[str, str]) -> None:
 		inputObject.write("\n"*1)
 
 		# Pair style section
-		inputObject.write("pair_style hybrid/overlay {} {} sw lj/smooth/linear 5.0 gauss/cut 5.0 coord/gauss/cut 5.0 \n".format(parameters["coulps"], parameters["coulcut"]))
+		#inputObject.write("pair_style hybrid/overlay {} {} sw lj/smooth/linear 5.0 gauss/cut 5.0 coord/gauss/cut 5.0 \n".format(parameters["coulps"], parameters["coulcut"]))
+		inputObject.write("pair_style hybrid/overlay {} {} sw lj/smooth/linear 5.0 gauss/cut 5.0 \n".format(parameters["coulps"], parameters["coulcut"]))
 		inputObject.write("pair_coeff * * {}\n".format(parameters["coulps"]))
 		inputObject.write("pair_coeff * * {}\n".format(parameters["coulps"]))
 		inputObject.write("pair_coeff * * lj/smooth/linear 0 0 0\n")
@@ -196,8 +197,8 @@ def create_LAMMPS_Input(parameters: typing.Dict[str, str]) -> None:
 		inputObject.write("pair_coeff 1 2 lj/smooth/linear {}e-2 {}\n".format(parameters["eps_AlO"], parameters["sigma_AlO"]))
 		inputObject.write("pair_coeff 2 3 lj/smooth/linear {}e-2 {}\n".format(parameters["eps_OH"], parameters["sigma_OH"]))
 		inputObject.write("pair_coeff 2 3 gauss/cut {} {} {} 2.0\n".format(parameters["gaussH_OH"], parameters["gaussR_OH"], parameters["gaussW_OH"]))
-		inputObject.write("pair_coeff 1 2 coord/gauss/cut {} {} {} 6.0\n".format(parameters["gaussH_AlO"], parameters["gaussR_AlO"], parameters["gaussW_AlO"]))
-		inputObject.write("pair_coeff 1 1 gauss/cut {} {} {} 5.0\n".format(parameters["gaussH_Al"], parameters["gaussR_Al"], parameters["gaussW_Al"]))
+#		inputObject.write("pair_coeff 1 2 coord/gauss/cut {} {} {} 6.0\n".format(parameters["gaussH_AlO"], parameters["gaussR_AlO"], parameters["gaussW_AlO"]))
+#		inputObject.write("pair_coeff 1 1 gauss/cut {} {} {} 5.0\n".format(parameters["gaussH_Al"], parameters["gaussR_Al"], parameters["gaussW_Al"]))
 		inputObject.write("pair_coeff 2 4 lj/smooth/linear {}e-2 {}\n".format(parameters["eps_NaO"], parameters["sigma_NaO"]))
 		inputObject.write("\n"*1)
 
