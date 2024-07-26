@@ -24,6 +24,7 @@
 #include "comm.h"
 #include "force.h"
 #include "neigh_list.h"
+#include "neighbor.h"
 #include "memory.h"
 #include "error.h"
 
@@ -59,6 +60,11 @@ PairCoordGaussCut::~PairCoordGaussCut()
 }
 
 /* ---------------------------------------------------------------------- */
+
+void PairCoordGaussCut::init_style() 
+{
+  neighbor->add_request(this, NeighConst::REQ_FULL);
+}
 
 void PairCoordGaussCut::compute(int eflag, int vflag) {
   int    i, j, ii, jj, inum, jnum, itype, jtype;
@@ -130,20 +136,23 @@ void PairCoordGaussCut::compute(int eflag, int vflag) {
 
       r            =  sqrt(rsq);
       rexp         =  (r-rmh[itype][jtype])/sigmah[itype][jtype];
-      
+
       if (itype == typea && jtype == typeb) {
         if (coord_tmp <= coord[itype][itype]) {
            double scale_factor  =  (coord_tmp / coord[itype][itype]) * hgauss[itype][jtype];
            ugauss               =  (scale_factor / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
+           // std::cout << ii << "\t" << itype << "\t" << jj << "\t" << jtype << "\t" << ugauss << "\t" << coord_tmp << "\n";
         }
         else {
-           double pre_exponent  =  (coord_tmp - coord[itype][itype]) / 0.5;
+           double pre_exponent  =  (coord_tmp - coord[itype][itype]);
            double scale_factor  =  hgauss[itype][jtype] * exp(-1 * pre_exponent * pre_exponent);
            ugauss               =  (scale_factor / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
+           // std::cout << ii << "\t" << itype << "\t" << jj << "\t" << jtype << "\t" << ugauss << "\t" << coord_tmp << "\n";
         }
       }
       else{
           ugauss               =  (hgauss[itype][jtype]/ sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
+          // std::cout << ii << "\t" << itype << "\t" << jj << "\t" << jtype << "\t" << ugauss << "\t" << coord_tmp << "\n";
       }
 
       fpair        =  factor_lj*rexp/r*ugauss/sigmah[itype][jtype];
@@ -321,7 +330,6 @@ double PairCoordGaussCut::init_one(int i, int j)
     }
     MPI_Allreduce(count,all,2,MPI_DOUBLE,MPI_SUM,world);
   }
-
   return cut[i][j];
 }
 
