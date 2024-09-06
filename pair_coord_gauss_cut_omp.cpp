@@ -101,29 +101,6 @@ void PairCoordGaussCutOMP::eval(int iifrom, int iito, ThrData * const thr)
   firstneigh  =   list->firstneigh;
   
   int n_ii    =   iito - iifrom;
-  double coords[n_ii];
-
-  // first calculate Al - Al coordination number
-  for (ii = iifrom; ii < iito; ++ii) {
-    i           =   ilist[ii];
-    xtmp        =   x[i].x;
-    ytmp        =   x[i].y;
-    ztmp        =   x[i].z;
-    coords[ii]  =   0.0;
-    for (jj = iifrom; jj < iito; ++jj) {
-      j     = ilist[jj];
-      delx  = xtmp - x[j].x;
-      dely  = ytmp - x[j].y;
-      delz  = ztmp - x[j].z;
-
-      rsq           = delx*delx + dely*dely + delz*delz;
-      r             = sqrt(rsq);
-      factor_coord  =   (r - rmh[itype][itype]) / rmh[itype][itype];
-      coord_nr      =   1 - pow(factor_coord, 6);
-      coord_dr      =   1 - pow(factor_coord, 12);
-      coords[ii-iifrom]    =   coords[ii-iifrom] + (coord_nr / coord_dr);    
-    }  
-  }
 
   // loop over neighbors of my atoms
   for (ii = iifrom; ii < iito; ++ii) {
@@ -153,9 +130,9 @@ void PairCoordGaussCutOMP::eval(int iifrom, int iito, ThrData * const thr)
       jtype =   type[j];
 
       r             =   sqrt(rsq);
-      factor_coord  =   (r - rnh[itype][jtype]) / rnh[itype][jtype];
-      coord_nr      =   1 - pow(factor_coord, 6);
-      coord_dr      =   1 - pow(factor_coord, 12);
+      factor_coord  =   (r) / rnh[itype][jtype];
+      coord_nr      =   1 - pow(factor_coord, 8);
+      coord_dr      =   1 - pow(factor_coord, 16);
 
       if (itype == typea && jtype == typeb) {
         coord_tmp     =   coord_tmp + (coord_nr / coord_dr);
@@ -173,44 +150,47 @@ void PairCoordGaussCutOMP::eval(int iifrom, int iito, ThrData * const thr)
       rsq   =   delx*delx + dely*dely + delz*delz;
       jtype =   type[j];
 
-      r             =   sqrt(rsq);      
-      rexp          =   (r-rmh[itype][jtype])/sigmah[itype][jtype];
-     
-      // Equation 11 in the Project log
-      if (itype == typea && jtype == typeb) {
-        if (coord_tmp <= coord[itype][itype]) {
-           double scale_factor  =  (coord_tmp / coord[itype][itype]) * hgauss[itype][jtype];
-           ugauss               =  (scale_factor / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
-        }
-        else {
-           double pre_exponent  =  (coord_tmp - coord[itype][itype]) / 0.5;
-           double scale_factor  =  hgauss[itype][jtype] * exp(-1 * pre_exponent * pre_exponent);
-           ugauss               =  (scale_factor / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
-        }
-      }
-      else {
-          ugauss               =  (hgauss[itype][jtype]/ sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
-      }
-      
-      fpair       =   factor_lj*rexp/r*ugauss/sigmah[itype][jtype];
-      ugauss      =   pgauss[itype][jtype]*exp(-0.5*rexp*rexp);
-      fpair       =   factor_lj*rexp/r*ugauss/sigmah[itype][jtype];
+      if (rsq <= cutsq[itype][jtype]) {
+        r             =   sqrt(rsq);      
+        rexp          =   (r-rmh[itype][jtype])/sigmah[itype][jtype];
+        // Equation 11 in the Project log
+        if (itype == typea && jtype == typeb) {
+          if (coord_tmp <= coord[itype][jtype]) {
+            double scale_factor  =  (coord_tmp / coord[itype][jtype]) * hgauss[itype][jtype];
+            ugauss               =  (scale_factor / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
+               // std::cout << ii << "\t" << jj << "\t" << scale_factor << "\t" << scale_factor << "\t" << coord_tmp << "\t" << coord[itype][jtype] << "\n";
+          }
+          else {
+            double pre_exponent  =  (coord_tmp - coord[itype][jtype]);
+            double scale_factor  =  hgauss[itype][jtype] * exp(-1 * pre_exponent * pre_exponent);
+            ugauss               =  (scale_factor / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
+               // std::cout << ii << "\t" << jj << "\t" << scale_factor << "\t" << scale_factor << "\t" << coord_tmp << "\t" << coord[itype][jtype] << "\n";
+            }
+          }
+          else {
+             ugauss               =  (hgauss[itype][jtype]/ sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
+          }
 
-      fxtmp       +=  delx*fpair;
-      fytmp       +=  dely*fpair;
-      fztmp       +=  delz*fpair;
-      if (NEWTON_PAIR || j < nlocal) {
-          f[j].x -= delx*fpair;
-          f[j].y -= dely*fpair;
-          f[j].z -= delz*fpair;
-        }
+        fpair       =   factor_lj*rexp/r*ugauss/sigmah[itype][jtype];
+        ugauss      =   pgauss[itype][jtype]*exp(-0.5*rexp*rexp);
+        fpair       =   factor_lj*rexp/r*ugauss/sigmah[itype][jtype];
 
-      if (EFLAG) {
-          evdwl = ugauss - offset[itype][jtype];
-          evdwl *= factor_lj;
-      }
+        fxtmp       +=  delx*fpair;
+        fytmp       +=  dely*fpair;
+        fztmp       +=  delz*fpair;
+        if (NEWTON_PAIR || j < nlocal) {
+            f[j].x -= delx*fpair;
+            f[j].y -= dely*fpair;
+            f[j].z -= delz*fpair;
+          }
+
+        if (EFLAG) {
+            evdwl = ugauss - offset[itype][jtype];
+            evdwl *= factor_lj;
+        }
 
       if (EVFLAG) ev_tally(i, j, nlocal, NEWTON_PAIR, evdwl, 0.0, fpair, delx, dely, delz);
+      }
     }
     f[i].x += fxtmp;
     f[i].y += fytmp;
