@@ -1,0 +1,577 @@
+@SET lib          /home/m.pouvreau/cp2k
+@SET RESTART      T
+@SET CPUTIME      604740
+@SET SYS          3m1
+@SET TSK          npt
+@SET RTYPE        MD
+@SET MD_ENS       NPT_I
+@SET RESTVEL      T
+@SET RESTWFN      F
+@SET FUNCTIONAL   RPBE   
+@SET THERMO_TCON  10
+@SET TEMPERATURE  300
+@SET EL_CONV      normq6 
+@SET COORD_FILE   ./3m1.0.xyz
+@SET COORD_FMT    XYZ
+@SET VIB_NPROC_REP 1
+@SET GEOOPT_CONV  normal
+@SET CHARGE       dummy
+@SET CHARGE_deprot  -1
+@SET WANNIER      F
+@SET WANNIER_EACH 1
+@SET WANNIER_RAMAN F
+@SET ram_pol    1.0 0.0 0.0
+@SET MD_STEPS     2000000
+@SET METHOD       FIST
+@SET QS_METHOD    NONE
+@SET UMBRELLA    F
+@SET MD_DT       0.5               
+@SET SNAP1       1
+@SET SNAP2	     20
+@SET RESTCEL     T
+@SET PERIODIC    XYZ
+@SET BASIS       DZVP   
+@SET CONSTRAINT  F
+ @SET LAT_SYM      CUBIC
+ @SET LAT_ABC      restart
+ @SET LAT_ANG      restart
+ @SET LATREF_ABC   0 0 0
+ @SET PSF F
+ @set FREQ_OUT_CUST F
+ @set FREQ_OUT_0    MED
+ @set part 0 4
+ @set gmax  15
+@set verb   MEDIUM
+@set corrf ${lib}/corr.in
+@set DFTBf ${lib}/DFTB3.in
+@set kinds ${lib}/kinds.in
+#@set slakodir /home/m.pouvreau/cp2k/slako/cp2k-prep/slako/Al1.6-O1.42-H3.2_noNaOrep
+@set slakodir /home/m.pouvreau/cp2k-prep/slako/Al1.6-O1.42-H3.2_noNaOrep
+@set aloh  T
+@set clayff  F
+@set stride 1
+@set eta -1
+@set ghost F
+@set GEO_TYPE MINIMIZATION
+@SET fist ${lib}/MM_simp.in
+@SET OUTPOSFMT PDB
+@set extfft F
+@set sccs F
+@set supercell 1 1 1
+@set uks F
+@set virial XYZ
+@set reftraj_varcel F
+@set reset_time F
+@set stress NONE
+@SET GEO_MAXS 500
+@SET SYSNAME     ${SYS}_${TSK}
+
+@include ${lib}/setfist.in
+
+!*****SYSTEM*****
+  @SET CENTER_COORD       T
+  #@SET CENTER_COORD       F
+  @SET KEEP_ANGLES        F
+
+!*****MD******
+  @SET NPTF_VIRIAL      ${virial}
+
+!*****DFT*****
+  @SET QS_METHOD     ${QS_METHOD}
+  @SET PRECONDIT     FULL_ALL
+#  @IF ($LAT_SYM /= ORTHORHOMBIC )
+#    @SET PRECONDIT    FULL_KINETIC
+#  @ENDIF
+  @SET MINIMIZER     DIIS
+  @SET UKS           ${uks}
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+@SET CELLOPT_TYPE   DIRECT_CELL_OPT
+@SET KEEP_SYMMETRY  T
+
+!*****OUTPUT FREQ*****
+@SET OUT_POS 1
+@SET OUT_VEL 1
+@SET OUT_RESTART_HIS 1000
+@SET OUT_STRESS  0
+@SET OUT_RESTART 1
+@SET OUT_MD_INFO    1
+@set OUT_GLOBAL ${verb}
+
+@SET OUT_MDCELL  0
+@SET OUT_FORCES  1
+@SET addlast_vel NUMERIC
+
+@IF ($MD_ENS == NVE)
+  @SET OUT_POS     1
+  @SET OUT_VEL     1
+@ENDIF
+@IF ($MD_ENS == NPT_F)
+  @SET OUT_MDCELL  1
+@ENDIF
+@IF ($MD_ENS == NPT_I)
+  @SET OUT_MDCELL  1
+@ENDIF
+#@IF ($MD_ENS == REFTRAJ)
+#  @SET OUT_POS 0
+#  @SET OUT_VEL 0
+#@ENDIF
+
+@SET CONNECT OFF
+@SET METHOD2 QS
+@set diag sl
+@IF ( ${QS_METHOD} == XTB )
+  @set diag sl
+@ENDIF
+@IF ( ${QS_METHOD} == GPW )
+  @set FREQ_OUT HIGH
+#  @set OUT_GLOBAL MEDIUM
+@ENDIF
+@IF ( ${QS_METHOD} == PM6 )
+  @set FREQ_OUT MED
+@ENDIF
+@IF ( ${QS_METHOD} == DFTB )
+  @set FREQ_OUT MED
+@ENDIF
+
+@IF ( ${METHOD} == QMMM_CORR )
+  @SET METHOD MIXED
+  @SET METHOD2 QMMM
+  @SET CONNECT GENERATE
+  @set FREQ_OUT MED
+  @SET OUT_MD_INFO 1
+@ENDIF
+@IF ( ${METHOD} == QMMM )
+  @SET METHOD2 QMMM
+  #@SET CONNECT GENERATE
+  @set FREQ_OUT MED
+  @SET OUT_MD_INFO 1
+@endif
+@IF ( ${METHOD} == FIST  )
+  @SET METHOD2 FIST
+  @SET CONNECT GENERATE
+  @SET OUT_RESTART     100
+  @SET OUT_VEL 0
+  @set FREQ_OUT VLOW
+  @set OUT_GLOBAL LOW
+@ENDIF
+  #@set FREQ_OUT MED
+
+@if ( ${FREQ_OUT_CUST} == T )
+  @set FREQ_OUT ${FREQ_OUT_0}
+@endif
+
+@IF ( ${FREQ_OUT} == VLOW )
+  @SET OUT_POS         2000
+  #@SET OUT_POS         20000
+  @SET OUT_VEL         0
+  @SET OUT_RESTART_HIS 2000000
+@ENDIF
+@IF ( ${FREQ_OUT} == LOW )
+  @SET OUT_POS         100
+  @SET OUT_VEL         0
+  @SET OUT_RESTART_HIS 1000000
+@ENDIF
+@ENDIF
+@IF ( ${FREQ_OUT} == MED )
+  @SET OUT_POS         10
+  @SET OUT_VEL         0
+  @SET OUT_RESTART_HIS 10000
+@ENDIF
+
+@SET OUT_FORCES  ${OUT_POS}
+@set OUT_MDCELL ${OUT_POS}
+@IF ( ${MD_ENS} == NVT )
+  @set OUT_MDCELL 0
+@ENDIF
+@IF ( ${MD_ENS} == NPT_F )
+  @set OUT_MDCELL 0
+@ENDIF
+
+@SET OUT_RESTART ${OUT_POS}
+@SET OUT_MD_INFO ${OUT_POS}
+
+@IF ( ${OUT_VEL} == 0 )
+  @SET addlast_vel NO
+@ENDIF
+@if ($MD_ENS == REFTRAJ)
+  @SET OUT_MD_INFO     1
+@endif
+
+!*****THERMO*****
+@SET THERMOSTAT       F
+@SET TEMP_TOL         0.0
+@SET COMVEL_TOL       999999.0
+#@SET BARO_TCON       600.0
+@SET BARO_TCON        10.0
+@SET PRESSURE         1.0
+@SET BAROSTAT  F
+@IF ($MD_ENS == NVT)
+  @SET THERMOSTAT  T
+@ENDIF
+@IF ($MD_ENS == NPT_F)
+	@SET THERMOSTAT  T
+	@SET BAROSTAT  T
+  @set stress ANALYTICAL
+@ENDIF
+@IF ($MD_ENS == NPT_I)
+    @SET THERMOSTAT  T
+    @SET BAROSTAT  T
+  @set stress ANALYTICAL
+@ENDIF
+@IF ($RTYPE == CELL_OPT)
+  @set stress ANALYTICAL
+@ENDIF
+
+!In general one should have an error ef on the forces one should have sqrt(eps_scf) < ef and sqrt(eps_default) < eps_scf,
+!and in general around 1.e-3 is the error that you need to have reasonable MD.
+@SET SCF_CONV      1E-6
+@SET EPS_DEFAULT   1E-12
+
+@IF ($EL_CONV == low)
+ @SET CUTOFF        280
+ @SET REL_CUTOFF    40
+@ENDIF
+@IF ($EL_CONV == normq6)
+  @SET CUTOFF        320
+  @SET REL_CUTOFF    50
+@ENDIF
+@IF ($EL_CONV == normq9)
+  @SET CUTOFF        600
+  @SET REL_CUTOFF    50
+@ENDIF
+@IF ($EL_CONV == normq10)
+  @SET CUTOFF        900
+  @SET REL_CUTOFF    50
+@ENDIF
+@IF ($EL_CONV == normq15)
+  @SET CUTOFF        1400
+  @SET REL_CUTOFF    50
+@ENDIF
+@IF ($EL_CONV == normq11)
+  @SET CUTOFF        1200
+  @SET REL_CUTOFF    60
+@ENDIF
+
+@IF ($EL_CONV == tightq6)
+  @SET SCF_CONV      5E-7
+  @SET EPS_DEFAULT   2.5E-13
+  @SET CUTOFF        450
+  @SET REL_CUTOFF    60
+@ENDIF
+
+@SET OT            T
+@SET MIXING        F
+#@IF (${KPOINTS} /= "gamma")
+#@SET OT F
+#@ENDIF
+@IF (${QS_METHOD} == PM6-FM)
+  @SET OT F
+  @SET MIXING T
+@ENDIF
+
+#@SET BASISFILE    EMSL_BASIS_SETS
+@SET BASISFILE     ${lib}/BASIS_SET
+#@SET BASISFILE     ${lib}/BASIS_MOLOPT
+@SET POTFILE       ${lib}/POTENTIAL
+@SET SCF_NCYCLES   50
+@SET SCF_OCYCLES   50
+@SET DISP_RC 	   10.58354
+@SET DISP_TYP 	   PAIR_POTENTIAL
+@SET DISP_FUNC     PBE
+@SET POT_FUNC      PBE
+@SET POT_FUNC2     PBE
+
+#@SET BASIS         ${BASIS}
+
+@SET D3_PARAM  0 0 0
+@SET LIBXC F
+@SET TYPE_NONLOC DRSLL 
+@set FUNC_SHORT NO_SHORTCUT
+
+@IF ($FUNCTIONAL == RPBE)
+  @SET D3_PARAM   1.0 0.872 0.514
+@ENDIF
+!@SET DISP_TYP  NONE
+@IF ($FUNCTIONAL == optB88)
+ @SET FUNCTIONAL optB88
+ @SET DISP_TYP  NON_LOCAL
+ @SET TYPE_NONLOC DRSLL 
+ @SET POT_FUNC  BLYP
+ @SET POT_FUNC2 BLYP
+ @SET LIBXC T
+@ENDIF
+@IF ($FUNCTIONAL == wB97V)
+ @SET DISP_TYP  NONE
+ @SET POT_FUNC  BLYP
+ @SET POT_FUNC2 BLYP
+!!!!!!
+ @SET BASIS TZV2P
+!!!!!!
+@ENDIF
+@IF ($FUNCTIONAL == PBE0)
+ @SET DISP_FUNC PBE0
+@ENDIF
+@IF ($FUNCTIONAL == PBE)
+ @SET FUNC_SHORT PBE
+@ENDIF
+@IF ($FUNCTIONAL == RPW86dF)
+ @SET FUNCTIONAL RPW86
+ @SET DISP_TYP  NON_LOCAL
+ @SET TYPE_NONLOC DRSLL 
+ @SET LIBXC T
+@ENDIF
+@IF ($FUNCTIONAL == B86R)
+ @SET FUNCTIONAL B86R
+ @SET DISP_TYP  NON_LOCAL
+ @SET TYPE_NONLOC LMKLL 
+ @SET LIBXC T
+@ENDIF
+@IF ($FUNCTIONAL == revPBE)
+ @SET DISP_FUNC revPBE
+@ENDIF
+@IF ($FUNCTIONAL == revM06L)
+ !@SET DISP_FUNC M06L
+ @SET DISP_TYP  NONE
+@ENDIF
+@IF ($FUNCTIONAL == BLYP)
+!! attention !!
+ @SET DISP_TYP NONE
+!!!!!!!!!!!!!!!
+ @SET DISP_FUNC BLYP
+ @SET POT_FUNC  BLYP
+ @SET POT_FUNC2 BLYP
+ @set FUNC_SHORT BLYP
+@ENDIF
+
+!@IF ($QS_METHOD == GPW)
+!	H , C , N , O , F , Si , P , S , Cl : SZV-MOLOPT-GTH, DZVP-MOLOPT-GTH, TZVP-MOLOPT-GTH, TZV2P-MOLOPT-GTH, TZV2PX-MOLOPT-GTH
+! Most of periodic table : SZV-MOLOPT-SR-GTH, DZVP-MOLOPT-SR-GTH
+
+    @SET POT_H         GTH-${POT_FUNC}-q1
+    @SET POT_Al        GTH-${POT_FUNC}-q3
+    @SET POT_K         GTH-${POT_FUNC}-q9
+    @SET POT_O         GTH-${POT_FUNC}-q6
+    @SET POT_Mg        GTH-${POT_FUNC2}-q2
+    @SET POT_Si        GTH-${POT_FUNC}-q4
+    @SET POT_Ca        GTH-${POT_FUNC}-q10
+    @SET POT_Na        GTH-${POT_FUNC}-q9
+    @SET POT_Li        GTH-${POT_FUNC}-q3
+    @SET POT_N        GTH-${POT_FUNC}-q5
+    @SET POT_Cl        GTH-${POT_FUNC}-q7
+    @SET POT_Tc        GTH-${POT_FUNC}-q15
+    @SET POT_Ga        GTH-${POT_FUNC}-q13
+    @SET POT_C        GTH-${POT_FUNC}-q4
+    @set POT_Rb GTH-${POT_FUNC}-q9
+    @set POT_Cs GTH-${POT_FUNC}-q9
+    @set POT_Cu GTH-${POT_FUNC}-q11
+    #@set POT_Cu GTH-${POT_FUNC}-q1
+
+@IF ($BASIS == DZVP)
+  @SET BASIS         DZVP-MOLOPT-SR-GTH
+  @SET BASIS_Al      DZVP-MOLOPT-SR-GTH
+  @SET BASIS_Li      DZVP-MOLOPT-SR-GTH
+  @SET BASIS_Na      DZVP-MOLOPT-SR-GTH
+  @SET BASIS_K       DZVP-MOLOPT-SR-GTH
+  @SET BASIS_Cs       DZVP-MOLOPT-SR-GTH
+  @SET BASIS_Tc       DZVP-MOLOPT-SR-GTH
+  @SET BASIS_Ga       DZVP-MOLOPT-SR-GTH
+@ENDIF
+@IF ($BASIS == DZVPLR)
+  @SET BASIS         DZVP-MOLOPT-GTH
+  @SET BASIS_Al      DZVP-MOLOPT-SR-GTH
+  @SET BASIS_Li      DZVP-MOLOPT-SR-GTH
+  @SET BASIS_Na      DZVP-MOLOPT-SR-GTH
+  @SET BASIS_K       DZVP-MOLOPT-SR-GTH
+  @SET BASIS_Cs       DZVP-MOLOPT-SR-GTH
+  @SET BASIS_Tc       DZVP-MOLOPT-SR-GTH
+  @SET BASIS_Ga       DZVP-MOLOPT-SR-GTH
+@ENDIF
+
+@IF ($BASIS == SZV)
+  @SET BASIS         SZV-MOLOPT-SR-GTH
+  @SET BASIS_Al      SZV-MOLOPT-SR-GTH
+  @SET BASIS_Li      SZV-MOLOPT-SR-GTH
+  @SET BASIS_Na      SZV-MOLOPT-SR-GTH
+  @SET BASIS_K       SZV-MOLOPT-SR-GTH
+  @SET BASIS_Cs       SZV-MOLOPT-SR-GTH
+  @SET BASIS_Tc       SZV-MOLOPT-SR-GTH
+@ENDIF
+
+@IF ($BASIS == TZVP)
+  @SET BASIS         TZVP-MOLOPT-GTH
+  @SET BASIS_Al      TZVP-MOLOPT-SR-GTH
+  @SET BASIS_Li      TZVP-MOLOPT-GTH
+  @SET BASIS_K       TZVP-MOLOPT-SR-GTH
+  @SET BASIS_Cs      TZVP-MOLOPT-SR-GTH
+  @SET BASIS_Na      TZVPd-MOLOPT-SR-GTH
+@ENDIF
+@IF ($BASIS == TZV2P)
+  @SET BASIS         TZV2P-MOLOPT-GTH
+  #@SET BASIS_Al      TZV2P-MOLOPT-SR-GTH
+  @SET BASIS_Al      TZV2P-GTH
+  @SET BASIS_Li      TZV2P-GTH
+  @SET BASIS_Na      TZV2Pd-MOLOPT-SR-GTH
+  @SET BASIS_Cs      TZV2P-MOLOPT-SR-GTH
+  @SET BASIS_K       TZV2Pd-MOLOPT-SR-GTH
+@ENDIF
+
+!@ENDIF
+
+@IF ($QS_METHOD == GAPW)
+    @SET BASIS         DZVP-ALL
+   !@SET BASIS aug-pc-2
+   !@SET BASIS_Al aug-pc-2
+!   @SET BASIS_K    Ahlrichs-pTZV 
+!   @SET BASIS      Ahlrichs-pTZV 
+!   @SET BASIS_Al   Ahlrichs-pTZV 
+
+!    @SET BASIS TZVP-ALL
+    @SET POT_H         ALL
+    @SET POT_Al        ALL
+    @SET POT_O         ALL
+    @SET POT_Mg        ALL
+    @SET POT_K ALL 
+    @SET POT_Si ALL
+    @SET POT_Ca ALL
+    @SET POT_Cu ALL
+    @SET POT_N ALL
+    @SET POT_C ALL
+@ENDIF
+
+@SET MULLIKEN  OFF
+@SET DDAPC     F
+@SET RESP      F
+@SET PRESS_TENS 100 0 0 0 100 0 0 0 100 !bar!default: 100 0 0 0 100 0 0 0 100
+@SET NOSE_LENGTH      3
+@SET GEO_MINI   BFGS
+#@set GEO_TYPE MINIMIZATION
+#-----add-----
+#@SET GEO_MINI   LBFGS
+@IF ($GEO_TYPE == TRANSITION_STATE)
+  @SET GEO_MINI CG
+@ENDIF
+
+#@SET GEO_MAXS 1000000
+@SET UNIT_VEL	angstrom*fs^-1
+@SET UNIT_VEL	angstrom*fs^-1
+!!default:BOHR*AU_T^-1 = 2.187691*10^6 m.s^-1 = 21.87691 angstr.fs^1
+
+@SET THERMO_TYPE NOSE
+#@SET THERMO_TYPE CSVR
+@SET THERMO_REGION GLOBAL
+#@IF ( ${QMMM_ADAPT} == T )
+#  @SET THERMO_TYPE AD_LANGEVIN
+#  @SET THERMO_REGION MASSIVE
+#  @SET GEO_MINI CG
+#@ENDIF
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!GLOBAL & RESTART!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+&EXT_RESTART
+      RESTART_DEFAULT ${RESTART} 
+  #      RESTART_DEFAULT  F
+
+@IF ($RESTART == T)
+      #RESTART_POS  T
+      RESTART_CONSTRAINT F 
+      RESTART_FILE_NAME ${SYSNAME}.r
+      RESTART_CELL ${RESTCEL}
+      RESTART_VEL  ${RESTVEL}
+@ENDIF
+@IF ($RESTART == F)
+   @set RESTCEL F
+   @set RESTWFN F
+@ENDIF
+&END EXT_RESTART
+
+&GLOBAL
+  EXTENDED_FFT_LENGTHS $extfft
+  PROJECT      $SYSNAME
+  RUN_TYPE     $RTYPE
+  PRINT_LEVEL  ${OUT_GLOBAL}
+  WALLTIME     $CPUTIME
+  SAVE_MEM     F
+  TRACE        F
+  preferred_diag_library ${diag}
+  #preferred_diag_library sl
+&END GLOBAL
+
+@set acid -1
+@set generate ${lib}/generate.in 
+#@set fist ${lib}/MM.in
+#@set fist ${lib}/MM_simp.in
+@set feval_order 1
+@set mixed ${lib}/mixed_qscorr.in
+@set multsub F
+@IF ( ${METHOD} == QS_CORR )
+  @set feval_order 2 3
+  @SET METHOD2  MIXED
+@endif
+@IF (${eta} /= -1)
+  @set mixed ${lib}/mixed_veg.in
+  @set feval_order 2 3 4
+  @set METHOD2 MIXED
+  @set generate generate.in 
+  @set acid T
+  @set COORD_FILE ${SYS}.0.xyz
+  @set multsub T
+@endif
+
+&MULTIPLE_FORCE_EVALS
+  FORCE_EVAL_ORDER ${feval_order}
+  MULTIPLE_SUBSYS ${multsub}
+&END
+# 1st force eval #
+@include ${lib}/forceval.in
+#@include forceval.in
+
+@if ( ${METHOD} == QS_CORR )
+  @set METHOD2  QS
+  @include ${lib}/forceval.in
+  @set fist ${corrf}
+  @set METHOD2  FIST
+  @include ${lib}/forceval.in
+@ENDIF
+
+@IF (${eta} /= -1)
+
+  # protonated
+  @set METHOD2 QS
+  @include ${lib}/forceval.in 
+  # deprotonated
+  #@if ( ${ghost} == F )
+    @set COORD_FILE ${SYS}_deprot.0.xyz
+  #@endif
+  @set METHOD2 QS
+  @set acid F
+  @include ${lib}/forceval.in
+  # restraints (bonds, angles, etc.)
+  @set COORD_FILE ${SYS}.0.xyz
+  @set METHOD2 FIST
+  @set fist proton_restr.in
+  @set CONNECT GENERATE
+  @include ${lib}/forceval.in
+
+@ENDIF
+
+
+@IF ($RTYPE == VIBRATIONAL_ANALYSIS)
+  &VIBRATIONAL_ANALYSIS
+    NPROC_REP ${VIB_NPROC_REP}
+    &PRINT
+      &ROTATIONAL_INFO
+        COORDINATES T
+      &END
+      &MOLDEN_VIB
+        FILENAME =${SYSNAME}.mol
+      &END
+    &END
+  &END
+@ENDIF
+
+@include ${lib}/motion.in
+#@include motion.in
+

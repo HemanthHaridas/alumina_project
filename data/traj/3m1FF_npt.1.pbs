@@ -1,0 +1,43 @@
+#!/bin/bash
+#SBATCH -p clark
+#SBATCH -J 3m1_npt
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=4
+##SBATCH --threads-per-core=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=
+#SBATCH --time=168:00:00
+
+# -- if not on kamiak on cascade: - replace the 'loadcp2k' command with the commands to add the necessary libraries for CP2K execution and add the CP2K executable to the PATH 
+#                                  - replace the #SBATCH options where necessary
+#loadcp2k 
+. /home/m.pouvreau/cp2k/loadcp2k
+#--------
+
+pfx="3m1_npt"
+pfx0="3m1_npt"
+pbscp="F"
+tsk="npt"
+restart="T" 
+restcel="T"
+
+if [ "$pbscp" == 'T' ]; then
+cp $pfx0.r $pfx.r
+if [ "$method" != 'FIST' ]; then
+cp $pfx0.w $pfx.w
+fi
+elif [ ${tsk:0:3} == 'nve' ]; then
+sed -E -i 's/@SET RESTVEL\s+F/@SET RESTVEL T/' $pfx.in
+fi
+if [ "$restart" == 'T' ]; then
+sed -E -i 's/@SET RESTART\s+F/@SET RESTART T/' $pfx.in
+sed -E -i 's/@SET RESTVEL\s+F/@SET RESTVEL T/' $pfx.in
+#      sed -E -i 's/@SET RESTWFN\s+F/@SET RESTWFN T/' $pfx.in
+fi
+if [ "$restcel" == 'T' ]; then
+sed -E -i 's/@SET RESTCEL\s+F/@SET RESTCEL T/' $pfx.in
+fi
+
+cat $pfx.in >> $pfx.out
+srun -n $SLURM_NTASKS stdbuf -o 100KB  cp2k.popt -i $pfx.in -o $pfx.out
+

@@ -1,0 +1,21 @@
+ Comment line
+ 
+      3 atoms
+       4 atom types
+ 
+-34 34 xlo xhi
+-34 34 ylo yhi
+-34 34 zlo zhi
+
+Masses
+
+1 27
+2 15.9999
+3 1.0
+4 22.99
+
+Atoms
+
+1 1 4 0 0 0 -2.30517
+2 2 2 0 0 0 0.674825
+3 3 3 0 0 0 1.63035
