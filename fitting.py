@@ -197,7 +197,7 @@ def create_LAMMPS_Input(parameters: typing.Dict[str, str]) -> None:
 	parameters["swS_OH"]	=	154.0000
 
 	#Maxime: fixed radii for CN
-	parameters["radius_AlO"]	=	parameters["swS_AlO"]
+	parameters["radius_AlO"]	=	parameters["swS_AlO"] * 1.e-2
 	parameters["radius_Al"]	= 4.0
 
   #not used for qeq/point:
@@ -238,8 +238,12 @@ def create_LAMMPS_Input(parameters: typing.Dict[str, str]) -> None:
 		inputObject.write("pair_coeff 2 3 lj/smooth/linear 	{}e-2 {}\n".format(parameters["eps_OH"], 	parameters["sigma_OH"]))
 		inputObject.write("pair_coeff 2 4 lj/smooth/linear 	{}e-2 {}\n".format(parameters["eps_NaO"], 	parameters["sigma_NaO"]))
 		inputObject.write("\n")
-		inputObject.write("pair_coeff 1 1 coord/gauss/cut 	{} {} {} {} {} \n".format(parameters["gaussH_Al"], 		parameters["gaussR_Al"], 	parameters["gaussW_Al"],	parameters["coord_AlO"],	parameters["radius_AlO"]))
-		inputObject.write("pair_coeff 1 2 coord/gauss/cut 	{} {} {} {} {} \n".format(parameters["gaussH_AlO"], 	parameters["gaussR_AlO"], 	parameters["gaussW_AlO"],	parameters["coord_Al"],		parameters["radius_Al"]))
+
+#		inputObject.write("pair_coeff 1 1 coord/gauss/cut 	{} {} {} {} {} \n".format(parameters["gaussH_Al"], 		parameters["gaussR_Al"], 	parameters["gaussW_Al"],	parameters["coord_AlO"],	parameters["radius_AlO"]))
+#		inputObject.write("pair_coeff 1 2 coord/gauss/cut 	{} {} {} {} {} \n".format(parameters["gaussH_AlO"], 	parameters["gaussR_AlO"], 	parameters["gaussW_AlO"],	parameters["coord_Al"],		parameters["radius_Al"]))
+		inputObject.write("pair_coeff 1 1 coord/gauss/cut   {} {} {} {} {} \n".format(parameters["gaussH_Al"],    parameters["gaussR_Al"],  parameters["gaussW_Al"],  parameters["coord_AlO"],  parameters["radius_Al"]))
+		inputObject.write("pair_coeff 1 2 coord/gauss/cut 	{} {} {} {} {} \n".format(parameters["gaussH_AlO"], 	parameters["gaussR_AlO"], 	parameters["gaussW_AlO"],	parameters["coord_Al"],		parameters["radius_AlO"]))
+
 		inputObject.write("pair_coeff 2 3 gauss/cut 	{} {} {} 2.0\n".format(parameters["gaussH_OH"], 	parameters["gaussR_OH"], 	parameters["gaussW_OH"]))
 
 		inputObject.write("\n"*1)
@@ -669,29 +673,30 @@ def main() -> None:
 
 	clean_slate()	# remove files from previous runs
   
-	#run_and_collect(paramVector_2)
-	#exit()
+	run_and_collect(paramVector_2)
+	exit()
 
 	# margin		=	float(sys.argv[1])	# get the margin for fitting from user
-	first_minimization	=	scipy.optimize.minimize(run_and_collect, paramVector_2, method='Nelder-Mead',options={'adaptive': True,'maxiter': 1000, 'fatol':1e-3, 'xatol':1e-3})
-	print(first_minimization.x)
+	#first_minimization	=	scipy.optimize.minimize(run_and_collect, paramVector_2, method='Nelder-Mead',options={'adaptive': True,'maxiter': 1000, 'fatol':1e-3, 'xatol':1e-3})
+	#print(first_minimization.x)
 
-	# # first do a global minimization 
-	# optimizer			=	nlopt.opt(nlopt.G_MLSL_LDS, paramVector_2.size)	
-	# local_optimizer		=	nlopt.opt(nlopt.LN_SBPLX, paramVector_2.size)
-	# optimizer.set_local_optimizer(local_optimizer)
-	# local_optimizer.set_xtol_rel(1e-3)
+	# first do a global minimization 
+	margin=0.9
+	optimizer			=	nlopt.opt(nlopt.G_MLSL_LDS, paramVector_2.size)	
+	local_optimizer		=	nlopt.opt(nlopt.LN_SBPLX, paramVector_2.size)
+	optimizer.set_local_optimizer(local_optimizer)
+	local_optimizer.set_xtol_rel(1e-3)
 
-	# minParams	=	paramVector_2 - (margin * abs(paramVector_2))	# lower bound for parameters
-	# maxParams	=	paramVector_2 + (margin * abs(paramVector_2))	# upper bound for parameters
+	minParams	=	paramVector_2 - (margin * abs(paramVector_2))	# lower bound for parameters
+	maxParams	=	paramVector_2 + (margin * abs(paramVector_2))	# upper bound for parameters
 
-	# optimizer.set_lower_bounds(minParams)
-	# optimizer.set_upper_bounds(maxParams)
-	# optimizer.set_min_objective(run_and_collect)
+	optimizer.set_lower_bounds(minParams)
+	optimizer.set_upper_bounds(maxParams)
+	optimizer.set_min_objective(run_and_collect)
 
-	# # Now perform the optimization
-	# optimized_values	=	optimizer.optimize(paramVector_2)
-	# print(optimized_values)
+	# Now perform the optimization
+	optimized_values	=	optimizer.optimize(paramVector_2)
+	print(optimized_values)
 
 if __name__ == '__main__':
 	main()

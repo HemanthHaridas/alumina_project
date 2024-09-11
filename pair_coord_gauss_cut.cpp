@@ -70,7 +70,7 @@ void PairCoordGaussCut::compute(int eflag, int vflag) {
   int    i, j, ii, jj, inum, jnum, itype, jtype;
   double xtmp, ytmp, ztmp, delx, dely, delz, evdwl, fpair;
   double rsq, r, rexp, ugauss, factor_lj, coord_tmp;
-  double factor_coord, coord_nr, coord_dr;
+  double factor_coord, coord_nr, coord_dr, NN;
   int    *ilist, *jlist, *numneigh, **firstneigh;
 
   evdwl  =  0.0;
@@ -89,6 +89,9 @@ void PairCoordGaussCut::compute(int eflag, int vflag) {
   numneigh      =   list->numneigh;
   firstneigh    =   list->firstneigh;
 
+//High NN for testing
+	NN=50;
+  printf("typea=%i; typeb=%i; cutsq=%f\n", typea, typeb, cutsq[typea][typeb]);
 
   for (ii = 0; ii < inum; ii++) {
     i          =  ilist[ii];
@@ -110,16 +113,20 @@ void PairCoordGaussCut::compute(int eflag, int vflag) {
       delz  =  ztmp - x[j][2];
       rsq   =  delx*delx + dely*dely + delz*delz;
       jtype =  type[j];
+//      printf("j=%i; jtype=%i\n", j, jtype);
 
       r            =  sqrt(rsq);
       factor_coord =  (r) / rnh[itype][jtype];
-      coord_nr     =  1 - pow(factor_coord, 8);
-      coord_dr     =  1 - pow(factor_coord, 16);
+      coord_nr     =  1 - pow(factor_coord, NN);
+      coord_dr     =  1 - pow(factor_coord, 2*NN);
       // rexp         =  (r-rmh[itype][jtype])/sigmah[itype][jtype];
 
       // check if outerloop is Al and inner loop is O
       if (itype == typea && jtype == typeb) {
         coord_tmp    =  coord_tmp + (coord_nr / coord_dr);
+				if (jj == jnum-1) {
+  				printf("itype=%i; jtype=%i; coord_tmp=%f; rnh=%f\n", itype, jtype, coord_tmp, rnh[itype][jtype]);
+				}
       }
     }
 
@@ -138,21 +145,26 @@ void PairCoordGaussCut::compute(int eflag, int vflag) {
         r            =  sqrt(rsq);
         rexp         =  (r-rmh[itype][jtype])/sigmah[itype][jtype];
 
+      //	printf("j=%i; jtype=%i; r=%f\n", j, jtype, r);
+
         if (itype == typea && jtype == typeb) {
           if (coord_tmp <= coord[itype][jtype]) {
             double scale_factor  =  (coord_tmp / coord[itype][jtype]) * hgauss[itype][jtype];
             ugauss               =  (scale_factor / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
-           // std::cout << ii << "\t" << itype << "\t" << jj << "\t" << jtype << "\t" << scale_factor << "\t" << coord_tmp << "\t" << coord[itype][jtype] << "\n";
+//            std::cout << ii << "\t" << itype << "\t" << jj << "\t" << jtype << "\t" << scale_factor << "\t" << coord_tmp << "\t" << coord[itype][jtype] << "\n";
           }
           else {
             double pre_exponent  =  (coord_tmp - coord[itype][jtype]);
             double scale_factor  =  hgauss[itype][jtype] * exp(-1 * pre_exponent * pre_exponent);
             ugauss               =  (scale_factor / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
-           // std::cout << ii << "\t" << itype << "\t" << jj << "\t" << jtype << "\t" << scale_factor << "\t" << coord_tmp << "\t" << coord[itype][jtype] << "\n";
+//            std::cout << ii << "\t" << itype << "\t" << jj << "\t" << jtype << "\t" << scale_factor << "\t" << coord_tmp << "\t" << coord[itype][jtype] << "\n";
           }
         }
         else {
-          ugauss = (hgauss[itype][jtype] / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
+				   printf("itype=%i; jtype=%i; i=%i; j=%i\n", itype, jtype, i, j);
+           error->all(FLERR,"itype != typea && jtype != typeb");
+//          std::cout << ii << "\t" << itype << "\t" << jj << "\t" << jtype << "\t" << coord_tmp << "\t" << coord[itype][jtype] << "\n";
+          //ugauss = (hgauss[itype][jtype] / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
         }
 
         fpair        =  factor_lj*rexp/r*ugauss/sigmah[itype][jtype];
