@@ -56,6 +56,8 @@ PairCoordGaussCut::~PairCoordGaussCut()
     memory->destroy(offset);
     memory->destroy(coord);
     memory->destroy(rnh);
+    memory->destroy(typea);
+    memory->destroy(typeb);
   }
 }
 
@@ -70,7 +72,7 @@ void PairCoordGaussCut::compute(int eflag, int vflag) {
   int    i, j, ii, jj, inum, jnum, itype, jtype;
   double xtmp, ytmp, ztmp, delx, dely, delz, evdwl, fpair;
   double rsq, r, rexp, ugauss, factor_lj, coord_tmp;
-  double factor_coord, coord_nr, coord_dr, NN;
+  double factor_coord, coord_nr, coord_dr;
   int    *ilist, *jlist, *numneigh, **firstneigh;
 
   evdwl  =  0.0;
@@ -89,9 +91,6 @@ void PairCoordGaussCut::compute(int eflag, int vflag) {
   numneigh      =   list->numneigh;
   firstneigh    =   list->firstneigh;
 
-//High NN for testing
-	NN=50;
-  printf("typea=%i; typeb=%i; cutsq=%f\n", typea, typeb, cutsq[typea][typeb]);
 
   for (ii = 0; ii < inum; ii++) {
     i          =  ilist[ii];
@@ -113,20 +112,17 @@ void PairCoordGaussCut::compute(int eflag, int vflag) {
       delz  =  ztmp - x[j][2];
       rsq   =  delx*delx + dely*dely + delz*delz;
       jtype =  type[j];
-//      printf("j=%i; jtype=%i\n", j, jtype);
 
       r            =  sqrt(rsq);
       factor_coord =  (r) / rnh[itype][jtype];
-      coord_nr     =  1 - pow(factor_coord, NN);
-      coord_dr     =  1 - pow(factor_coord, 2*NN);
+      coord_nr     =  1 - pow(factor_coord, 8);
+      coord_dr     =  1 - pow(factor_coord, 16);
       // rexp         =  (r-rmh[itype][jtype])/sigmah[itype][jtype];
 
       // check if outerloop is Al and inner loop is O
-      if (itype == typea && jtype == typeb) {
+      if (itype == typea[itype][itype] && jtype == typea[itype][jtype]) {
         coord_tmp    =  coord_tmp + (coord_nr / coord_dr);
-				if (jj == jnum-1) {
-  				printf("itype=%i; jtype=%i; coord_tmp=%f; rnh=%f\n", itype, jtype, coord_tmp, rnh[itype][jtype]);
-				}
+//        std::cout << typea[itype][itype] << " " << typea[jtype][jtype] << " " << coord_tmp << "\n";
       }
     }
 
@@ -145,27 +141,23 @@ void PairCoordGaussCut::compute(int eflag, int vflag) {
         r            =  sqrt(rsq);
         rexp         =  (r-rmh[itype][jtype])/sigmah[itype][jtype];
 
-      //	printf("j=%i; jtype=%i; r=%f\n", j, jtype, r);
-
-        if (itype == typea && jtype == typeb) {
+        if (itype == typea[itype][itype] && jtype == typea[itype][jtype]) {
           if (coord_tmp <= coord[itype][jtype]) {
             double scale_factor  =  (coord_tmp / coord[itype][jtype]) * hgauss[itype][jtype];
             ugauss               =  (scale_factor / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
-//            std::cout << ii << "\t" << itype << "\t" << jj << "\t" << jtype << "\t" << scale_factor << "\t" << coord_tmp << "\t" << coord[itype][jtype] << "\n";
+            std::cout << ii << "\t" << itype << "\t" << jj << "\t" << jtype << "\t" << scale_factor << "\t" << coord_tmp << "\t" << coord[itype][jtype] << "\n";
           }
           else {
             double pre_exponent  =  (coord_tmp - coord[itype][jtype]);
             double scale_factor  =  hgauss[itype][jtype] * exp(-1 * pre_exponent * pre_exponent);
             ugauss               =  (scale_factor / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
-//            std::cout << ii << "\t" << itype << "\t" << jj << "\t" << jtype << "\t" << scale_factor << "\t" << coord_tmp << "\t" << coord[itype][jtype] << "\n";
+            std::cout << ii << "\t" << itype << "\t" << jj << "\t" << jtype << "\t" << scale_factor << "\t" << coord_tmp << "\t" << coord[itype][jtype] << "\n";
           }
         }
-        else {
-				   printf("itype=%i; jtype=%i; i=%i; j=%i\n", itype, jtype, i, j);
-           error->all(FLERR,"itype != typea && jtype != typeb");
-//          std::cout << ii << "\t" << itype << "\t" << jj << "\t" << jtype << "\t" << coord_tmp << "\t" << coord[itype][jtype] << "\n";
-          //ugauss = (hgauss[itype][jtype] / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
-        }
+        // else {
+          // ugauss = (hgauss[itype][jtype] / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
+	  // std::cout << ii << "\t" << jj << "\t" << itype << "\t" << jtype << "\n";
+        // }
 
         fpair        =  factor_lj*rexp/r*ugauss/sigmah[itype][jtype];
 
@@ -214,6 +206,7 @@ void PairCoordGaussCut::allocate()
   memory->create(pgauss,   n+1,  n+1,  "pair:pgauss");
   memory->create(offset,   n+1,  n+1,  "pair:offset");
   memory->create(rnh,      n+1,  n+1,  "pair:rnh");
+  memory->create(typea,    n+1,  n+1,  "pair:typea");
 }
 
 /* ----------------------------------------------------------------------
@@ -242,7 +235,7 @@ void PairCoordGaussCut::settings(int narg, char **arg)
 
 void PairCoordGaussCut::coeff(int narg, char **arg)
 {
-  if (narg < 6 || narg > 8) error->all(FLERR,"Incorrect args for pair coefficients");
+  if (narg < 7 || narg > 9) error->all(FLERR,"Incorrect args for pair coefficients");
   if (!allocated) allocate();
 
   int ilo,ihi,jlo,jhi;
@@ -255,15 +248,12 @@ void PairCoordGaussCut::coeff(int narg, char **arg)
   double coord_one    =   utils::numeric(FLERR,arg[5],false,lmp);
   double rnh_one      =   utils::numeric(FLERR,arg[6],false,lmp);
 
-  typea               =   ilo;
-  typeb               =   jlo; 
-
   if (sigmah_one <= 0.0)
     error->all(FLERR,"Incorrect args for pair coefficients");
 
 
   double cut_one     = cut_global;
-  // if (narg == 8) cut_one = utils::numeric(FLERR,arg[8],false,lmp);
+  if (narg == 8) cut_one = utils::numeric(FLERR,arg[7],false,lmp);
 
   int count = 0;
   for (int i = ilo; i <= ihi; i++) {
@@ -274,16 +264,10 @@ void PairCoordGaussCut::coeff(int narg, char **arg)
       cut[i][j]       =   cut_one;
       coord[i][j]     =   coord_one;
       rnh[i][j]       =   rnh_one; 
+      typea[i][i]     =   ilo;
+      typea[i][j]     =   jhi;
 
-      hgauss[j][i]    =   hgauss[i][j];
-      sigmah[j][i]    =   sigmah[i][j];
-      rmh[j][i]       =   rmh[i][j];
-      rnh[j][i]       =   rnh[i][j];
-      coord[j][i]     =   coord[i][j];
-      pgauss[j][i]    =   pgauss[i][j];
-      offset[j][i]    =   offset[i][j];
-      cut[j][i]       =   cut[i][j];
-      // std::cout << ilo << " " << ihi << " " << jlo << " " << jhi << " " << coord[i][j] << " " << rmh[i][j] << "\n";
+      std::cout << ilo << " " << ihi << " " << jlo << " " << jhi << " " << coord[i][j] << " " << rmh[i][j] << " " << cut[i][j] << " " << typea[i][i] << " " << typea[i][j] << "\n";
       setflag[i][j]  =  1;
       count++;
     }
