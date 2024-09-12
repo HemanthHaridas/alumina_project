@@ -84,7 +84,7 @@ void PairCoordGaussCutOMP::eval(int iifrom, int iito, ThrData * const thr)
   int    i, j, ii, jj, inum, jnum, itype, jtype;
   double xtmp, ytmp, ztmp, delx, dely, delz, evdwl, fpair;
   double rsq, r, rexp, ugauss, factor_lj;
-  double factor_coord, coord_nr, coord_dr, coord_tmp;
+  double factor_coord, coord_nr, coord_dr;
   int    *ilist, *jlist, *numneigh, **firstneigh;
 
   evdwl = 0.0;
@@ -102,6 +102,9 @@ void PairCoordGaussCutOMP::eval(int iifrom, int iito, ThrData * const thr)
   
   int n_ii    =   iito - iifrom;
 
+  // create a 2D array to hold coordination numbers
+  double coord_tmp[n_ii+1][atom->ntypes];
+
   // loop over neighbors of my atoms
   for (ii = iifrom; ii < iito; ++ii) {
 
@@ -112,12 +115,15 @@ void PairCoordGaussCutOMP::eval(int iifrom, int iito, ThrData * const thr)
     itype       =   type[i];
     jlist       =   firstneigh[i];
     jnum        =   numneigh[i];
-    coord_tmp   =   0.0;
+    
     fxtmp       =   0.0;
     fytmp       =   0.0;
     fztmp       =   0.0;
-    // std::cout << iifrom << " " << iito << "\n";
     
+    for (jj = 0; jj < atom->ntypes+1; jj++) {
+      coord_tmp[ii][jj] = 0;
+    }
+ 
     for (jj = 0; jj < jnum; jj++) {
       j         =   jlist[jj];
       factor_lj =   special_lj[sbmask(j)];
@@ -134,9 +140,8 @@ void PairCoordGaussCutOMP::eval(int iifrom, int iito, ThrData * const thr)
       coord_nr      =   1 - pow(factor_coord, 8);
       coord_dr      =   1 - pow(factor_coord, 16);
 
-      if (itype == typea[itype][itype] && jtype == typea[itype][jtype]) {
-        coord_tmp     =   coord_tmp + (coord_nr / coord_dr);
-        //std::cout << typea[itype][itype] << " " << typea[jtype][jtype] << " " << coord_tmp << "\n";
+      if (itype == typea[itype][jtype] && jtype == typea[jtype][itype] and itype <= jtype) {
+        coord_tmp[ii][jtype]     =   coord_tmp[ii][jtype] + (coord_nr / coord_dr);
       }
     }
 
@@ -155,17 +160,15 @@ void PairCoordGaussCutOMP::eval(int iifrom, int iito, ThrData * const thr)
         r             =   sqrt(rsq);      
         rexp          =   (r-rmh[itype][jtype])/sigmah[itype][jtype];
         // Equation 11 in the Project log
-        if (itype == typea[itype][itype] && jtype == typea[itype][jtype]) {
-          if (coord_tmp <= coord[itype][jtype]) {
-            double scale_factor  =  (coord_tmp / coord[itype][jtype]) * hgauss[itype][jtype];
+        if (itype == typea[itype][jtype] && jtype == typea[jtype][itype] and itype <= jtype) {
+          if (coord_tmp[ii][jtype] <= coord[itype][jtype]) {
+            double scale_factor  =  (coord_tmp[ii][jtype] / coord[itype][jtype]) * hgauss[itype][jtype];
             ugauss               =  (scale_factor / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
-            std::cout << ii << "\t" << jj << "\t" << scale_factor << "\t" << scale_factor << "\t" << coord_tmp << "\t" << coord[itype][jtype] << "\n";
           }
           else {
-            double pre_exponent  =  (coord_tmp - coord[itype][jtype]);
+            double pre_exponent  =  (coord_tmp[ii][jtype] - coord[itype][jtype]);
             double scale_factor  =  hgauss[itype][jtype] * exp(-1 * pre_exponent * pre_exponent);
             ugauss               =  (scale_factor / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
-            std::cout << ii << "\t" << jj << "\t" << scale_factor << "\t" << scale_factor << "\t" << coord_tmp << "\t" << coord[itype][jtype] << "\n";
             }
           }
           // else {
