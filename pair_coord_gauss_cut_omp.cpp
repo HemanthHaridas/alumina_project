@@ -170,12 +170,7 @@ void PairCoordGaussCutOMP::eval(int iifrom, int iito, ThrData * const thr)
             double scale_factor  =  hgauss[itype][jtype] * exp(-1 * pre_exponent * pre_exponent);
             ugauss               =  (scale_factor / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
             }
-          }
-          // else {
-            // ugauss               =  (hgauss[itype][jtype]/ sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
-	    // std::cout << ii << "\t" << jj << "\t" << itype << "\t" << jtype << "\n";
-          //}
-
+            
         fpair       =   factor_lj*rexp/r*ugauss/sigmah[itype][jtype];
         ugauss      =   pgauss[itype][jtype]*exp(-0.5*rexp*rexp);
         fpair       =   factor_lj*rexp/r*ugauss/sigmah[itype][jtype];
@@ -187,7 +182,7 @@ void PairCoordGaussCutOMP::eval(int iifrom, int iito, ThrData * const thr)
             f[j].x -= delx*fpair;
             f[j].y -= dely*fpair;
             f[j].z -= delz*fpair;
-          }
+        }
 
         if (EFLAG) {
             evdwl = ugauss - offset[itype][jtype];
@@ -195,6 +190,7 @@ void PairCoordGaussCutOMP::eval(int iifrom, int iito, ThrData * const thr)
         }
 
       if (EVFLAG) ev_tally(i, j, nlocal, NEWTON_PAIR, evdwl, 0.0, fpair, delx, dely, delz);
+        }
       }
     }
     f[i].x += fxtmp;

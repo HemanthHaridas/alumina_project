@@ -120,20 +120,13 @@ void PairCoordGaussCut::compute(int eflag, int vflag) {
 
       r            =  sqrt(rsq);
       if (rsq <= cutsq[itype][jtype]) {
-	factor_coord =  (r) / rnh[itype][jtype];
-      	coord_nr     =  1 - pow(factor_coord, 6);
+        factor_coord =  (r) / rnh[itype][jtype];
+        coord_nr     =  1 - pow(factor_coord, 6);
       	coord_dr     =  1 - pow(factor_coord, 12);
 
       	// check if outerloop is Al and inner loop is O
       	if (itype == typea[itype][jtype] && jtype == typea[jtype][itype] && itype <= jtype) {
         	coord_tmp[ii][jtype]    =  coord_tmp[ii][jtype] + (coord_nr / coord_dr);
-		//std::cout << ii << "\t" << itype << "\t" << i << "\t" << typea[itype][jtype] << "\t" << jj << "\t" << jtype << "\t" << j << "\t" << typea[jtype][itype] << "\t" << coord_tmp[ii][jtype] << "\n";
-      	}
-
-      	// need to divide the Al - Al coordination number by 2 to remove double counting
-      	if (itype == jtype && itype == typea[itype][jtype]) {
-        	coord_tmp[ii][jtype]	= coord_tmp[ii][jtype];
-		//std::cout << ii << "\t" << itype << "\t" << i << "\t" << typea[itype][jtype] << "\t" << jj << "\t" << jtype << "\t" << j << "\t" << typea[jtype][itype] << "\t" << coord_tmp[ii][jtype] << "\t" << rsq << "\n";
       	}
       }
     }
@@ -157,20 +150,13 @@ void PairCoordGaussCut::compute(int eflag, int vflag) {
           if (coord_tmp[ii][jtype] <= coord[itype][jtype]) {
             double scale_factor  =  (coord_tmp[ii][jtype] / coord[itype][jtype]) * hgauss[itype][jtype];
             ugauss               =  (scale_factor / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
-            //std::cout << ii << "\t" << itype << "\t" << jj << "\t" << jtype << "\t" << scale_factor << "\t" << coord_tmp[ii][jtype] << "\t" << coord[itype][jtype] << "\n";
           }
           else {
             double pre_exponent  =  (coord_tmp[ii][jtype] - coord[itype][jtype]);
             double scale_factor  =  hgauss[itype][jtype] * exp(-1 * pre_exponent * pre_exponent);
             ugauss               =  (scale_factor / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
-            //std::cout << ii << "\t" << itype << "\t" << jj << "\t" << jtype << "\t" << scale_factor << "\t" << coord_tmp[ii][jtype] << "\t" << coord[itype][jtype] << "\n";
           }
-        }
-        // else {
-          // ugauss = (hgauss[itype][jtype] / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
-	  // std::cout << ii << "\t" << jj << "\t" << itype << "\t" << jtype << "\n";
-        // }
-
+          
         fpair        =  factor_lj*rexp/r*ugauss/sigmah[itype][jtype];
 
         f[i][0]   +=    delx*fpair;
@@ -189,6 +175,7 @@ void PairCoordGaussCut::compute(int eflag, int vflag) {
         }
 
         if (evflag) ev_tally(i, j, nlocal, newton_pair, evdwl, 0.0, fpair, delx, dely, delz);
+        }
       }
     }
   }
@@ -309,10 +296,10 @@ double PairCoordGaussCut::init_one(int i, int j)
 
   pgauss[i][j]    = hgauss[i][j] / sqrt(MY_2PI) / sigmah[i][j];
 
-  // if (offset_flag) {
-  //   double rexp   = (cut[i][j]-rmh[i][j])/sigmah[i][j];
-  //   offset[i][j]  = pgauss[i][j] * exp(-0.5*rexp*rexp);
-  // } else offset[i][j] = 0.0;
+  if (offset_flag) {
+    double rexp   = (cut[i][j]-rmh[i][j])/sigmah[i][j];
+    offset[i][j]  = pgauss[i][j] * exp(-0.5*rexp*rexp);
+  } else offset[i][j] = 0.0;
 
   hgauss[j][i]    =  hgauss[i][j];
   sigmah[j][i]    =  sigmah[i][j];
