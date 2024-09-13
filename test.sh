@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #	lmp="/Users/hemanthharidas/Desktop/Codes/lammps_test/lammps/build/lmp"
-lmp="lmp_serial"
+# lmpbin="lmp_serial"
 
 t1=$(date +%s%3N)
 for inp in *.inp
@@ -12,7 +12,7 @@ do
 
   prefix=${inp%%.*}
 	echo "$prefix"
-  $lmp -i $inp > $prefix.log 
+  $lmpbin -i $inp > $prefix.log 
 done
 
 echo -n "Total time: "
