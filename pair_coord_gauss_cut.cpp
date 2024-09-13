@@ -56,6 +56,7 @@ PairCoordGaussCut::~PairCoordGaussCut()
     memory->destroy(offset);
     memory->destroy(coord);
     memory->destroy(rnh);
+    memory->destroy(typea);
   }
 }
 
@@ -69,7 +70,7 @@ void PairCoordGaussCut::init_style()
 void PairCoordGaussCut::compute(int eflag, int vflag) {
   int    i, j, ii, jj, inum, jnum, itype, jtype;
   double xtmp, ytmp, ztmp, delx, dely, delz, evdwl, fpair;
-  double rsq, r, rexp, ugauss, factor_lj, coord_tmp;
+  double rsq, r, rexp, ugauss, factor_lj;
   double factor_coord, coord_nr, coord_dr;
   int    *ilist, *jlist, *numneigh, **firstneigh;
 
@@ -89,6 +90,13 @@ void PairCoordGaussCut::compute(int eflag, int vflag) {
   numneigh      =   list->numneigh;
   firstneigh    =   list->firstneigh;
 
+  // create a 2D list to hold the coordination number of each atom with each type
+  double coord_tmp[inum][atom->ntypes+1];
+  for (ii = 0; ii < inum; ii++) {
+    for (jj = 0; jj < atom->ntypes+1; jj++) {
+        coord_tmp[ii][jj] = 0;
+    }
+  }
 
   for (ii = 0; ii < inum; ii++) {
     i          =  ilist[ii];
@@ -98,8 +106,7 @@ void PairCoordGaussCut::compute(int eflag, int vflag) {
     itype      =  type[i];
     jlist      =  firstneigh[i];
     jnum       =  numneigh[i];
-    coord_tmp  =  0.0;
-      
+
     for (jj = 0; jj < jnum; jj++) {
       j           =  jlist[jj];
       factor_lj   =  special_lj[sbmask(j)];
@@ -112,14 +119,15 @@ void PairCoordGaussCut::compute(int eflag, int vflag) {
       jtype =  type[j];
 
       r            =  sqrt(rsq);
-      factor_coord =  (r - rnh[itype][jtype]) / rnh[itype][jtype];
-      coord_nr     =  1 - pow(factor_coord, 6);
-      coord_dr     =  1 - pow(factor_coord, 12);
-      // rexp         =  (r-rmh[itype][jtype])/sigmah[itype][jtype];
+      if (rsq <= cutsq[itype][jtype]) {
+        factor_coord =  (r) / rnh[itype][jtype];
+        coord_nr     =  1 - pow(factor_coord, 6);
+      	coord_dr     =  1 - pow(factor_coord, 12);
 
-      // check if outerloop is Al and inner loop is O
-      if (itype == typea && jtype == typeb) {
-        coord_tmp    =  coord_tmp + (coord_nr / coord_dr);
+      	// check if outerloop is Al and inner loop is O
+      	if (itype == typea[itype][jtype] && jtype == typea[jtype][itype] && itype <= jtype) {
+        	coord_tmp[ii][jtype]    =  coord_tmp[ii][jtype] + (coord_nr / coord_dr);
+      	}
       }
     }
 
@@ -134,48 +142,43 @@ void PairCoordGaussCut::compute(int eflag, int vflag) {
       rsq   =  delx*delx + dely*dely + delz*delz;
       jtype =  type[j];
 
-      r            =  sqrt(rsq);
-      rexp         =  (r-rmh[itype][jtype])/sigmah[itype][jtype];
+      if (rsq <= cutsq[itype][jtype]) {
+        r            =  sqrt(rsq);
+        rexp         =  (r-rmh[itype][jtype])/sigmah[itype][jtype];
 
-      if (itype == typea && jtype == typeb) {
-        if (coord_tmp <= coord[itype][itype]) {
-           double scale_factor  =  (coord_tmp / coord[itype][itype]) * hgauss[itype][jtype];
-           ugauss               =  (scale_factor / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
-           // std::cout << ii << "\t" << itype << "\t" << jj << "\t" << jtype << "\t" << ugauss << "\t" << coord_tmp << "\n";
+        if (itype == typea[itype][jtype] && jtype == typea[jtype][itype] && itype <= jtype) {
+          if (coord_tmp[ii][jtype] <= coord[itype][jtype]) {
+            double scale_factor  =  (coord_tmp[ii][jtype] / coord[itype][jtype]) * hgauss[itype][jtype];
+            ugauss               =  (scale_factor / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
+          }
+          else {
+            double pre_exponent  =  (coord_tmp[ii][jtype] - coord[itype][jtype]);
+            double scale_factor  =  hgauss[itype][jtype] * exp(-1 * pre_exponent * pre_exponent);
+            ugauss               =  (scale_factor / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
+          }
+          
+        fpair        =  factor_lj*rexp/r*ugauss/sigmah[itype][jtype];
+
+        f[i][0]   +=    delx*fpair;
+        f[i][1]   +=    dely*fpair;
+        f[i][2]   +=    delz*fpair;
+
+        if (newton_pair || j < nlocal) {
+          f[j][0]    -=    delx*fpair;
+          f[j][1]    -=    dely*fpair;
+          f[j][2]    -=    delz*fpair;
         }
-        else {
-           double pre_exponent  =  (coord_tmp - coord[itype][itype]);
-           double scale_factor  =  hgauss[itype][jtype] * exp(-1 * pre_exponent * pre_exponent);
-           ugauss               =  (scale_factor / sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
-           // std::cout << ii << "\t" << itype << "\t" << jj << "\t" << jtype << "\t" << ugauss << "\t" << coord_tmp << "\n";
+
+        if (eflag) {
+          evdwl   =  ugauss - offset[itype][jtype];
+          evdwl   *= factor_lj;
+        }
+
+        if (evflag) ev_tally(i, j, nlocal, newton_pair, evdwl, 0.0, fpair, delx, dely, delz);
         }
       }
-      else{
-          ugauss               =  (hgauss[itype][jtype]/ sqrt(MY_2PI) / sigmah[itype][jtype]) * exp(-1 * rexp * rexp);
-          // std::cout << ii << "\t" << itype << "\t" << jj << "\t" << jtype << "\t" << ugauss << "\t" << coord_tmp << "\n";
-      }
-
-      fpair        =  factor_lj*rexp/r*ugauss/sigmah[itype][jtype];
-
-      f[i][0]   +=    delx*fpair;
-      f[i][1]   +=    dely*fpair;
-      f[i][2]   +=    delz*fpair;
-
-      if (newton_pair || j < nlocal) {
-         f[j][0]    -=    delx*fpair;
-         f[j][1]    -=    dely*fpair;
-         f[j][2]    -=    delz*fpair;
-      }
-
-      if (eflag) {
-         evdwl   =  ugauss - offset[itype][jtype];
-         evdwl   *= factor_lj;
-      }
-
-      if (evflag) ev_tally(i, j, nlocal, newton_pair, evdwl, 0.0, fpair, delx, dely, delz);
     }
   }
-
   if (vflag_fdotr) virial_fdotr_compute();
 }
 
@@ -193,15 +196,16 @@ void PairCoordGaussCut::allocate()
     for (int j = i; j <= n; j++)
       setflag[i][j] = 0;
 
-  memory->create(cutsq,    n+1,  n+1,  "pair:cutsq");
-  memory->create(cut,      n+1,  n+1,  "pair:cut");
-  memory->create(coord,    n+1,  n+1,  "pair:coord");
-  memory->create(hgauss,   n+1,  n+1,  "pair:hgauss");
-  memory->create(sigmah,   n+1,  n+1,  "pair:sigmah");
-  memory->create(rmh,      n+1,  n+1,  "pair:rmh");
-  memory->create(pgauss,   n+1,  n+1,  "pair:pgauss");
-  memory->create(offset,   n+1,  n+1,  "pair:offset");
-  memory->create(rnh,      n+1,  n+1,  "pair:rnh");
+  memory->create(cutsq,     n+1,  n+1,  "pair:cutsq");
+  memory->create(cut,       n+1,  n+1,  "pair:cut");
+  memory->create(coord,     n+1,  n+1,  "pair:coord");
+  memory->create(hgauss,    n+1,  n+1,  "pair:hgauss");
+  memory->create(sigmah,    n+1,  n+1,  "pair:sigmah");
+  memory->create(rmh,       n+1,  n+1,  "pair:rmh");
+  memory->create(pgauss,    n+1,  n+1,  "pair:pgauss");
+  memory->create(offset,    n+1,  n+1,  "pair:offset");
+  memory->create(rnh,       n+1,  n+1,  "pair:rnh");
+  memory->create(typea,     n+1,  n+1,  "pair:typea");
 }
 
 /* ----------------------------------------------------------------------
@@ -230,7 +234,7 @@ void PairCoordGaussCut::settings(int narg, char **arg)
 
 void PairCoordGaussCut::coeff(int narg, char **arg)
 {
-  if (narg < 6 || narg > 8) error->all(FLERR,"Incorrect args for pair coefficients");
+  if (narg < 7 || narg > 9) error->all(FLERR,"Incorrect args for pair coefficients");
   if (!allocated) allocate();
 
   int ilo,ihi,jlo,jhi;
@@ -243,15 +247,12 @@ void PairCoordGaussCut::coeff(int narg, char **arg)
   double coord_one    =   utils::numeric(FLERR,arg[5],false,lmp);
   double rnh_one      =   utils::numeric(FLERR,arg[6],false,lmp);
 
-  typea               =   ilo;
-  typeb               =   jlo; 
-
   if (sigmah_one <= 0.0)
     error->all(FLERR,"Incorrect args for pair coefficients");
 
 
   double cut_one     = cut_global;
-  // if (narg == 8) cut_one = utils::numeric(FLERR,arg[8],false,lmp);
+  if (narg == 8) cut_one = utils::numeric(FLERR,arg[7],false,lmp);
 
   int count = 0;
   for (int i = ilo; i <= ihi; i++) {
@@ -262,16 +263,10 @@ void PairCoordGaussCut::coeff(int narg, char **arg)
       cut[i][j]       =   cut_one;
       coord[i][j]     =   coord_one;
       rnh[i][j]       =   rnh_one; 
+      typea[i][j]     =   ilo;
+      typea[j][i]     =   jhi;
 
-      hgauss[j][i]    =   hgauss[i][j];
-      sigmah[j][i]    =   sigmah[i][j];
-      rmh[j][i]       =   rmh[i][j];
-      rnh[j][i]       =   rnh[i][j];
-      coord[j][i]     =   coord[i][j];
-      pgauss[j][i]    =   pgauss[i][j];
-      offset[j][i]    =   offset[i][j];
-      cut[j][i]       =   cut[i][j];
-      // std::cout << ilo << " " << ihi << " " << jlo << " " << jhi << " " << coord[i][j] << " " << rmh[i][j] << "\n";
+      std::cout << ilo << " " << ihi << " " << jlo << " " << jhi << " " << coord[i][j] << " " << rmh[i][j] << " " << cut[i][j] << " " << typea[i][j] << " " << typea[j][i] << "\n";
       setflag[i][j]  =  1;
       count++;
     }
@@ -301,10 +296,10 @@ double PairCoordGaussCut::init_one(int i, int j)
 
   pgauss[i][j]    = hgauss[i][j] / sqrt(MY_2PI) / sigmah[i][j];
 
-  // if (offset_flag) {
-  //   double rexp   = (cut[i][j]-rmh[i][j])/sigmah[i][j];
-  //   offset[i][j]  = pgauss[i][j] * exp(-0.5*rexp*rexp);
-  // } else offset[i][j] = 0.0;
+  if (offset_flag) {
+    double rexp   = (cut[i][j]-rmh[i][j])/sigmah[i][j];
+    offset[i][j]  = pgauss[i][j] * exp(-0.5*rexp*rexp);
+  } else offset[i][j] = 0.0;
 
   hgauss[j][i]    =  hgauss[i][j];
   sigmah[j][i]    =  sigmah[i][j];

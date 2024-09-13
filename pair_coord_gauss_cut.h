@@ -52,8 +52,8 @@ class PairCoordGaussCut : public Pair {
   double **cut;
   double **hgauss, **sigmah, **rmh;
   double **pgauss, **offset, **coord;
-  double **rnh, **coorda;
-  int    typea, typeb;
+  double **rnh, **coorda, **coord_tmp;
+  int **typea;
   
   void allocate();
 };
