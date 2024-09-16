@@ -20,37 +20,57 @@ def createParameters(keys: typing.List[str], values: typing.List[float]) -> typi
 	return currentSet
 
 def clean_slate() -> None:
-	os.system("rm *.inp *log *.frc *.q ener.dat ../{lammps.log,errors.out} 2> /dev/null")
+	os.system("rm -r *log *.frc *.q ener.dat")
 
 # Initial parameters
-kv_dict = {}
-with open("param.ini", 'r') as file:
-    for line in file:
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-        key, value = line.split("=")
-        kv_dict[key.strip()] = float(value.strip())
 
-keys = list(kv_dict.keys())
-paramVector_1 = list(kv_dict.values())
-#print(paramVector_1);exit()
-#keys 				=	[	"chi_Al",     	"chi_H",      	"chi_Na",    	"chi_O",
-#						"ct_AlOH",    	"eps_AlO",   	"eps_AlOH",		"eps_HOH",    
-#						"eps_NaO",    	"eps_OH",    	"eta_Al",     	"eta_H",      
-#						"eta_Na",    	"eta_O",   		"sigma_AlO",  	"sigma_NaO", 	
-#						"sigma_OH",		"swG_AlO",		"gaussH_AlO", 	"gaussR_AlO", 	
-#						"gaussW_AlO", 	"coord_AlO",	"radius_AlO",	"gaussH_Al",  
-#						"gaussR_Al",	"gaussW_Al",  	"coord_Al",		"radius_Al"]
+# paramVector_1	=		[ 2.40484897e+00,  2.64146788e+02,  1.19112656e+01,  6.04616383e+02,
+# 						 -3.16753520e+01,  2.02726990e+01,  1.65359835e+01,  1.40455673e+03,
+# 						  6.02076817e-01,  1.22828245e+01,  3.54359909e+02,  4.39208316e+02,
+# 						  5.14515604e+02,  2.41018010e+02,  1.34159245e+00,  3.31221119e+01,
+# 						  2.08062458e+02,  7.13861574e+00,  2.03952700e+00,  3.36328156e+00,
+# 						  1.18540049e+00,  5.83529540e+01, -5.60690692e+00,  1.99787464e+00,  
+# 						  0.30565977e+00,  4.09454150e+00,  2.94716235e+00, -0.15569286e+00,
+# 						  4.03310597e+00,  0.48100599e+00,  3.03012667e+00,  6.23974649e+00,
+# 						  6.00000000e+00,  7.00000000e+00  
+# 						  ] 
 
-# Original data => might need this again
+# paramVector_1	=	[ 2.37263384e+00,  2.72373677e+02,  1.18207860e+01,  6.00052895e+02,
+# 					 -3.25117321e+01,  2.03588363e+01,  1.63550053e+01,  1.39313937e+03,
+# 					  5.96962043e-01,  1.24421867e+01,  3.67485230e+02,  4.71826255e+02,
+# 					  5.05107310e+02,  2.32748783e+02,  1.32673262e+00,  3.25887780e+01,
+# 					  2.05574845e+02,  7.10152629e+00,  2.10635053e+00,  3.33976053e+00,
+# 					  1.16823853e+00,  5.89141313e+01, -5.45564318e+00,  2.27485011e+00,
+# 					  3.02717153e-01,  3.96173441e+00,  2.95376320e+00, -1.54542199e-01,
+# 					  4.03709596e+00,  4.77710718e-01,  2.97384734e+00,  6.07958212e+00,
+# 					  5.98216265e+00,  7.03267095e+00
+# 					]
+
+paramVector_1	=	[ 2.32127725e+00,  2.72351301e+02,  1.18276846e+01,  6.00108795e+02,
+					 -3.27453589e+01,  2.03542349e+01,  1.63596578e+01,  1.42892991e+03,
+					  6.08405779e-01,  1.24329162e+01,  3.67372011e+02,  4.72260843e+02,
+					  5.14007057e+02,  2.32701120e+02,  1.31147000e+00,  3.26071821e+01,
+					  2.07752182e+02,  7.13380564e+00,  2.10626658e+00,  3.36121691e+00,
+					  1.16813017e+00,  5.77342684e+01, -5.43907732e+00,  2.35021510e+00,
+					  3.02300185e-01,  3.71731631e+00,  3.03656241e+00, -1.56084973e-01,
+					  4.03815343e+00,  4.78016742e-01,  2.92242291e+00,  6.12611246e+00,
+					  5.99897853e+00,  7.04792806e+00]
+
+keys			=	[	"chi_Al",     	"chi_H",      	"chi_Na",    	"chi_O",
+						"ct_AlOH",    	"eps_AlO",   	"eps_AlOH",		"eps_HOH",    
+						"eps_NaO",    	"eps_OH",    	"eta_Al",     	"eta_H",      
+						"eta_Na",    	"eta_O",   		"gamma_Al",   	"gamma_H",    
+						"gamma_Na",  	"gamma_O",		"sigma_AlO",  	"sigma_NaO", 	
+						"sigma_OH",		"swG_AlO",		"gaussH_AlO", 	"gaussR_AlO", 	
+						"gaussW_AlO", 	"coord_AlO",	"radius_AlO",	"gaussH_Al",  
+						"gaussR_Al",	"gaussW_Al",  	"coord_Al",		"radius_Al",
+						"cutoff_AlO",	"cutoff_Al"
+					]
 
 paramVector_2	=	numpy.array(paramVector_1)
 
 
-## Training set
-#Removed because not necessary:
-#NaOH               1
+# Training set
 training_set	=	[ 	"gibSEowCNAlAltraj", "gibSEowtraj",        "al6OHtraj",     "al6H2Otraj", 
 						      "al6AlAltraj",     "3m1traj",      "d2btod3traj",   "2m1tod2btraj", 
 						       "d2tod1traj",   "32wOOtraj",        "32wOHtraj",  "NaOH30wPTtraj", 
@@ -59,12 +79,11 @@ training_set	=	[ 	"gibSEowCNAlAltraj", "gibSEowtraj",        "al6OHtraj",     "a
 						    "aloh4scanAlOH",      "d1scan", "aloh4toaloh5scan",    "2m1tod3scan", 
 						               "w2",          "w6",             "d1na",           "d3na", 
 						          "aloh4na",           "w",              "Naw",           "Na5w", 
-						               "Na",       "wscan",      
-													 "gibbulk",        "gib001",   "gib001top",        "gib001bot",         "gib110", 
-						           "gib825", 
-											 "al3oh122na", "al3o3oh6na", "al3oh9na", "boehmiteb"
+						             "NaOH",          "Na",            "wscan",     "al3oh122na", 
+						       "al3o3oh6na",    "al3oh9na",          "gibbulk",      "boehmiteb", 
+						           "gib001",   "gib001top",        "gib001bot",         "gib110", 
+						           "gib825"
 					]
-#last 4: no react energies
 
 products	=	[	"gibSEowCNAlAltraj", "gibSEowtraj",   "al6OHtraj",       "al6H2Otraj", 
 				       	  "al6AlAltraj",     "3m1traj", "d2btod3traj",     "2m1tod2btraj", 
@@ -77,7 +96,7 @@ products	=	[	"gibSEowCNAlAltraj", "gibSEowtraj",   "al6OHtraj",       "al6H2Otra
 				              "gib825",       "gib110"
 				]
 
-# This came from ../data/Eref.dat
+# This came from ./data/Eref.dat
 reference_data	=	[	53.34110,  -17.5500000000000,   67.59140000,   54.8697,
 						39.29550,  137.9060000000000,    4.60300000,    0.7247,
 						-4.76830,   -4.8418500000000,  -45.92000000,  -93.9900,
@@ -140,6 +159,7 @@ counter_data_keys	=	[ 				"H3Ow", 	       "h5o2m", 	  "h5o2ts",
 pbc_data		=	["NSA", "gib", "boehmite"]
 trajs			=	[item for item in training_set if "traj" in item]
 pbc_data_keys	=	[]
+error_best		=	[numpy.inf]
 
 # suboptimial, but works
 for item in training_set:
@@ -151,27 +171,8 @@ pressure_data_keys		=	["gibbulk", "boehmiteb"]
 pressure_data_values	=	{  "gibbulk" : [6657, 4512, 4963,  499, 350, 1407],
 							 "boehmiteb" : [ 110,  105,  112, -672, -10, 2706]
 							}
-charge_include = [ "aloh4na", "d1na", "d3na", "Na5w", "NaOH", "Na", "Naw", "w2", "w6", "w" ]
-# Exclusions
-#charge_exclusion	=	pbc_data_keys + [	 "aloh4w", "aloh3wOHTS",          "d2ohts2",  "aloh3w3",
-#							"aloh3w2",    "aloh6na", "aloh42h2o_wshell",    "2m1na",
-#							 "d12naw",        "d2b",         "al3o3oh6",  "al3oh12",
-#						   "al4o3oh9",    "al6oh18",         "al6oh182", "al3oh9na"
-#						]
-#charge_exclusion	=	charge_exclusion + [x for x in training_set if x.find("scan") != -1]
-#charge_exclusion	=	charge_exclusion + [x for x in training_set if x.find("traj") != -1]
-
-#Maxime: not needed
-#xyz_exclusion		=	["aloh42h2o_wshell"]
-#xyz_exclusion		=	xyz_exclusion + [x for x in training_set if x.find("scan") != -1]
-#xyz_exclusion		=	xyz_exclusion + [x for x in training_set if x.find("traj") != -1]
-#
-#dist_exclusion		=	pbc_data_keys + ["Na"]
-#dist_exclusion_data	=	[]
-#for item in training_set:
-#	for comp in dist_exclusion:
-#		if item.find(comp) != -1:
-#			dist_exclusion_data.append(item)
+#Maxime: replaced charge exclusion with charge inclusion
+charge_do = [ "aloh4na", "d1na", "d3na", "Na5w", "NaOH", "Na", "Naw", "w2", "w6", "w" ]
 
 def create_LAMMPS_Input(parameters: typing.Dict[str, str]) -> None:
 	filename	=	parameters["filename"]
@@ -183,32 +184,38 @@ def create_LAMMPS_Input(parameters: typing.Dict[str, str]) -> None:
 	# parameters["coord_AlO"]		= 	4.16488520
 	# parameters["radius_AlO"]	=	2.16333265
 
+	# parameters["chi_Al"]	=	14.6462
+	# parameters["chi_H"]		=	271.2607   
+	# parameters["chi_Na"]	=	18.2857  
+	# parameters["chi_O"]		=	242.4888
+   	
+	# parameters["eta_Al"]	=	356.2723  
+	# parameters["eta_H"]		=	648.4402  
+	# parameters["eta_Na"]	=	518.0958
+	# parameters["eta_O"]		=	417.4323    
+	
+	# parameters["gamma_Al"]	=	1.1999
+	# parameters["gamma_H"]	=	33.9670  
+	# parameters["gamma_Na"]	=	192.4232    
+	# parameters["gamma_O"]	=	8.3731 
+
 	parameters["ct_HOH"]	=	-16.6225
 	parameters["eps_OO"]	=	  4.9193
 	parameters["sigma_OO"]	=	  3.2700
 
 	parameters["gaussH_OH"]	=	 -0.4747
-	#parameters["gaussR_OH"]	=	  1.0500
-	parameters["gaussR_OH"]	=	  1.0700
+	parameters["gaussR_OH"]	=	  1.0500
 	parameters["gaussW_OH"]	=	  0.0759
 
 	parameters["swG_OH"] 	=	 70.0000
 	parameters["swS_AlO"]	=	235.0000
 	parameters["swS_OH"]	=	154.0000
 
-	#Maxime: fixed radii for CN
-	parameters["radius_AlO"]	=	parameters["swS_AlO"] * 1.e-2
-	parameters["radius_Al"]	= 4.0
-
-  #not used for qeq/point:
-	parameters["gamma_Al"]	=	1.1999
-	parameters["gamma_H"]	=	33.9670  
-	parameters["gamma_Na"]	=	192.4232    
-	parameters["gamma_O"]	=	8.3731 
 	# Now resue the previously optimized parameters
 	# for key, value in zip(keys_optimized, paramVector_1_optimized):
 	# 	parameters[key]	=	value
 
+	# parameters["radius_AlO"]	=	1.5926
 	with open(f"{filename}.inp", "w") as inputObject:
 		# Header section
 		inputObject.write("units		real\n")
@@ -228,9 +235,9 @@ def create_LAMMPS_Input(parameters: typing.Dict[str, str]) -> None:
 		inputObject.write("pair_style hybrid/overlay {} {} sw lj/smooth/linear 5.0 gauss/cut 5.0 coord/gauss/cut 5.0 \n".format(parameters["coulps"], parameters["coulcut"]))
 		# inputObject.write("pair_style hybrid/overlay {} {} sw lj/smooth/linear 5.0 gauss/cut 5.0 \n".format(parameters["coulps"], parameters["coulcut"]))
 		inputObject.write("pair_coeff * * {}\n".format(parameters["coulps"]))
-#		inputObject.write("pair_coeff * * {}\n".format(parameters["coulps"]))
+		inputObject.write("pair_coeff * * {}\n".format(parameters["coulps"]))
 		inputObject.write("pair_coeff * * lj/smooth/linear 0 0 0\n")
-		inputObject.write("pair_coeff * * sw ../param.sw Al O H NULL\n")
+		inputObject.write("pair_coeff * * sw param.sw Al O H NULL\n")
 		inputObject.write("pair_coeff * * gauss/cut 0 0 1 0\n")
 		inputObject.write("\n")		
 		inputObject.write("pair_coeff 1 2 lj/smooth/linear 	{}e-2 {}\n".format(parameters["eps_AlO"], 	parameters["sigma_AlO"]))
@@ -238,12 +245,8 @@ def create_LAMMPS_Input(parameters: typing.Dict[str, str]) -> None:
 		inputObject.write("pair_coeff 2 3 lj/smooth/linear 	{}e-2 {}\n".format(parameters["eps_OH"], 	parameters["sigma_OH"]))
 		inputObject.write("pair_coeff 2 4 lj/smooth/linear 	{}e-2 {}\n".format(parameters["eps_NaO"], 	parameters["sigma_NaO"]))
 		inputObject.write("\n")
-
-#		inputObject.write("pair_coeff 1 1 coord/gauss/cut 	{} {} {} {} {} \n".format(parameters["gaussH_Al"], 		parameters["gaussR_Al"], 	parameters["gaussW_Al"],	parameters["coord_AlO"],	parameters["radius_AlO"]))
-#		inputObject.write("pair_coeff 1 2 coord/gauss/cut 	{} {} {} {} {} \n".format(parameters["gaussH_AlO"], 	parameters["gaussR_AlO"], 	parameters["gaussW_AlO"],	parameters["coord_Al"],		parameters["radius_Al"]))
-		inputObject.write("pair_coeff 1 1 coord/gauss/cut   {} {} {} {} {} \n".format(parameters["gaussH_Al"],    parameters["gaussR_Al"],  parameters["gaussW_Al"],  parameters["coord_AlO"],  parameters["radius_Al"]))
-		inputObject.write("pair_coeff 1 2 coord/gauss/cut 	{} {} {} {} {} \n".format(parameters["gaussH_AlO"], 	parameters["gaussR_AlO"], 	parameters["gaussW_AlO"],	parameters["coord_Al"],		parameters["radius_AlO"]))
-
+		inputObject.write("pair_coeff 1 1 coord/gauss/cut 	{} {} {} {} {} {}\n".format(parameters["gaussH_Al"], 	parameters["gaussR_Al"], 	parameters["gaussW_Al"],	parameters["coord_Al"],		parameters["radius_Al"],	parameters["cutoff_Al"]))
+		inputObject.write("pair_coeff 1 2 coord/gauss/cut 	{} {} {} {} {} {}\n".format(parameters["gaussH_AlO"], 	parameters["gaussR_AlO"], 	parameters["gaussW_AlO"],	parameters["coord_AlO"],	parameters["radius_AlO"],	parameters["cutoff_AlO"]))
 		inputObject.write("pair_coeff 2 3 gauss/cut 	{} {} {} 2.0\n".format(parameters["gaussH_OH"], 	parameters["gaussR_OH"], 	parameters["gaussW_OH"]))
 
 		inputObject.write("\n"*1)
@@ -258,7 +261,7 @@ def create_LAMMPS_Input(parameters: typing.Dict[str, str]) -> None:
 		inputObject.write("\n"*1)
 
 		# charge section
-		inputObject.write("fix 1 all qeq/point 1 8.5 1.0e-6 200 ../param.qeq\n")
+		inputObject.write("fix 1 all qeq/point 1 8.5 1.0e-6 200 param.qeq\n")
 		inputObject.write("\n"*1)
 
 		# define required groups
@@ -292,13 +295,13 @@ def create_LAMMPS_Input(parameters: typing.Dict[str, str]) -> None:
 			inputObject.write("print \"{}: $(pe) $(fnorm) {}\" append ener.dat screen no\n".format(parameters["filename"], parameters["supplements"]))
 			inputObject.write("\n"*1)
 
-	with open("../param.qeq", "w") as paramObject:
+	with open("param.qeq", "w") as paramObject:
 		paramObject.write("1 {} {} {}e-2 0 0.0\n".format(parameters["chi_Al"], 	parameters["eta_Al"], 	parameters["gamma_Al"]))
 		paramObject.write("2 {} {} {}e-2 0 0.0\n".format(parameters["chi_O"], 	parameters["eta_O"], 	parameters["gamma_O"]))
 		paramObject.write("3 {} {} {}e-2 0 0.0\n".format(parameters["chi_H"], 	parameters["eta_H"],	parameters["gamma_H"]))
 		paramObject.write("4 {} {} {}e-2 0 0.0\n".format(parameters["chi_Na"], 	parameters["eta_Na"], 	parameters["gamma_Na"]))
 
-	with open("../param.sw", "w") as swObject:
+	with open("param.sw", "w") as swObject:
 		swObject.write("#j  i   k  eps_ijk   sigma_ij  a_ij  lambda_ijk  gamma_ij0.7617  cthet      A  B  p  q  tol\n")
 		swObject.write("O   H   H  {}    {}e-2   1     1           {}e-2       {}e-2  0  1  0  0  0.01\n".format(parameters["eps_HOH"],   parameters["swS_OH"],  parameters["swG_OH"],  parameters["ct_HOH"]))
 		swObject.write("H   O   O  0     {}e-2   1     0           {}e-2       0      0  1  0  0  0.01\n".format(parameters["swS_OH"],   parameters["swG_OH"]))
@@ -328,7 +331,7 @@ def create_LAMMPS_Input(parameters: typing.Dict[str, str]) -> None:
 		swObject.write("H   H   O  0     0       0     0           0           0      0  0  0  0  0.01\n")
 		swObject.write("H   H   H  0     0       0     0           0           0      0  0  0  0  0.01\n")
 
-def lammps_setup(*args):
+def run_lammps(*args):
 	parsed_values	=	[round(arg, 6) for arg in args[0]]
 
 	# Need headers for error calculations
@@ -371,8 +374,8 @@ def lammps_setup(*args):
 		if system.find("scan") != -1:
 			spe 		=	"T"
 			traj 		=	"F"
-			outdir		=	"../data/scan"
-			datadir		=	"../data/data"
+			outdir		=	"./data/scan"
+			datadir		=	"./data/data"
 			thermostyle	=	"pe"
 			scan 		=	"T"
 
@@ -386,7 +389,7 @@ def lammps_setup(*args):
 		if system.find("traj") != -1:
 			spe 		=	"T"
 			traj 		=	"T"
-			datadir		=	"../data/traj"
+			datadir		=	"./data/traj"
 			thermostyle	=	"pe"
 			scan 		=	"F"
 			boundaries	=	"p p p"
@@ -402,7 +405,7 @@ def lammps_setup(*args):
 			scan		=	"F"
 			spe 		=	"F"
 			traj 		=	"F"
-			datadir		=	"../data/data"
+			datadir		=	"./data/data"
 			thermostyle	=	"pe fnorm"
 			parameters["supplements"] = ""
 			if system in pressure_data_keys:
@@ -423,13 +426,19 @@ def lammps_setup(*args):
 			constraint 	=	"empty"
 
 		if system in counter_data_keys:
+      #Maxime: counters are arrays#
+			#counter 	=	"id {}".format(counters[system])
 			counter 	=	"id {}".format(' '.join(map(str, counters[system])))
 			#print(counter);sys.exit()
 		else:
 			counter 	=	"empty"
-		if system in charge_include:
+    #Maxime edit
+		#if system in charge_exclusion:
+		if system in charge_do:
+						#parameters["qdump"]	=	"F"
 			parameters["qdump"]	=	"T"
 		else:
+						#parameters["qdump"]	=	"T"
 			parameters["qdump"]	=	"F"
 
 		parameters["constraint"]	=	constraint
@@ -438,20 +447,18 @@ def lammps_setup(*args):
 
 		# create the LAMMPS input file
 		create_LAMMPS_Input(parameters)
-		#exit()
 
-def run_and_collect(*args) -> typing.List[float]:
-
+def param_optimizer(*args) -> typing.List[float]:
 	# clear out old files
+	run_lammps(*args)
 	clean_slate()
-	lammps_setup(*args)
 
-	# print the current set of parameters to a file --> now printed alongside the errors (see end of def)
-	#with open("../param.out", "a") as fileObject:
-#		fileObject.write(''.join(f"{param:10.4f}" for param in args[0]))
-#		fileObject.write("\n")
+	# print the current set of parameters to a file
+	with open("parameter_set_reoptimization_fixed_maxime_global.dat", "a") as fileObject:
+		fileObject.write(''.join(f"{param:10.4f}" for param in args[0]))
+		fileObject.write("\n")
 
-	commands	=	"bash ../test.sh > ../lammps.log 2>&1"
+	commands	=	"bash test.sh"
 	os.system(commands)
 
 	# Having run the input files
@@ -472,13 +479,14 @@ def run_and_collect(*args) -> typing.List[float]:
 	error_energy	=	{}
 	error_force		=	{}
 	error_pressure	=	{}
-	remove_nlines = 3
 
 	for system in training_set:
 		# calculate differences in charges
-		if system in charge_include:
-			xyz_file	=	f"../data/xyz/{system}.xyz"
-			esp_file	=	f"../data/esp/{system}.esp"
+		#Maxime edit
+		#if system not in charge_exclusion:
+		if system in charge_do:
+			xyz_file	=	f"./data/xyz/{system}.xyz"
+			esp_file	=	f"./data/esp/{system}.esp"
 			charge_file	=	f"{system}.q"
 			with open(esp_file) as espObject, open(charge_file) as chargeObject:
 				esp_data				=	[float(data.split()[-1]) for data in espObject.readlines()[2:]]
@@ -490,12 +498,12 @@ def run_and_collect(*args) -> typing.List[float]:
 		# First process the scans
 		# calculate differences in energies
 		if system.find("scan") != -1:
-			energy_file		=	f"../data/scan/{system}.ener"
+			energy_file		=	f"./data/scan/{system}.ener"
 			log_file		=	f"./{system}.log"
 			with open(energy_file) as energyObject, open(log_file) as logObject:
 				energy_ref				=	[float(data.split()[-1]) for data in energyObject.readlines()]
-				nlines					=	len(energy_ref) + remove_nlines
-				_ff_energy				=	[data for data in logObject.readlines()[-1 * nlines:]][:-remove_nlines]
+				nlines					=	len(energy_ref) + 3
+				_ff_energy				=	[data for data in logObject.readlines()[-1 * nlines:]][:-3]
 				ff_energy 				=	numpy.array([float(data.split()[0]) for data in _ff_energy])
 				ff_energy_s				=	ff_energy - min(ff_energy)
 				error_e_file			=	[abs(ff_value - ref_value) for (ff_value, ref_value) in zip(ff_energy_s, energy_ref)]
@@ -503,7 +511,7 @@ def run_and_collect(*args) -> typing.List[float]:
 		
 		# calculate differences in forces
 		if system.find("scan") != -1:
-			force_file	=	f"../data/scan/{system}.frc"
+			force_file	=	f"./data/scan/{system}.frc"
 			ff_file		=	f"./{system}.FF.frc"
 			with open(force_file) as forceObject, open(ff_file) as ffObject:
 				_ref_data 				=	[data.split()[1:] for data in forceObject.readlines() if len(data.split()) == 4]
@@ -517,29 +525,23 @@ def run_and_collect(*args) -> typing.List[float]:
 
 		# Now process trajectories
 		if system.find("traj") != -1:
-			energy_file		=	f"../data/traj/{system}.ener"
+			energy_file		=	f"./data/traj/{system}.ener"
 			log_file		=	f"./{system}.log"
 			with open(energy_file) as energyObject, open(log_file) as logObject:
 				energy_ref				=	numpy.array([float(data.split()[-1]) for data in energyObject.readlines()])
+				#Maxime: To get the same error as mine
+				#energy_ref_s			=	energy_ref - min(energy_ref)
 				energy_ref_s			=	energy_ref - numpy.mean(energy_ref)
-				#--changed because 3 more unnecessary lines to the output
-				#nlines					=	len(energy_ref) + 3
-				nlines					=	len(energy_ref) + remove_nlines
-				#print(nlines);
-#				print(system)
-				#_ff_energy				=	[data for data in logObject.readlines()[-1 * nlines:]][:-3]
-				_ff_energy				=	[data for data in logObject.readlines()[-1 * nlines:]][:-remove_nlines]
+				nlines					=	len(energy_ref) + 3
+				_ff_energy				=	[data for data in logObject.readlines()[-1 * nlines:]][:-3]
 				ff_energy 				=	numpy.array([float(data.split()[0]) for data in _ff_energy])
 				#ff_energy_s				=	ff_energy - min(ff_energy)
 				ff_energy_s				=	ff_energy - numpy.mean(ff_energy)
 				error_e_file			=	[abs(ff_value - ref_value) for (ff_value, ref_value) in zip(ff_energy_s, energy_ref_s)]
-# 			print(ff_energy_s)
-#				print(energy_ref_s)
-#				print(error_e_file)
 				error_energy[system]	=	numpy.mean(numpy.array(error_e_file))
 
 			# Now calculate forces
-			force_file	=	f"../data/traj/{system}.frc"
+			force_file	=	f"./data/traj/{system}.frc"
 			ff_file		=	f"./{system}.FF.frc"
 			with open(force_file) as forceObject, open(ff_file) as ffObject:
 				_ref_data 				=	[data.split() for data in forceObject.readlines() if len(data.split()) == 3]
@@ -552,7 +554,7 @@ def run_and_collect(*args) -> typing.List[float]:
 				error_force[system]		=	numpy.mean(numpy.sqrt(error_f_file))
 
 		if system.find("32wtraj") != -1:
-			water_file		=	f"../data/traj/{system}.frc"
+			water_file		=	f"./data/traj/{system}.frc"
 			ff_file			=	f"./{system}.FF.frc"
 			with open(water_file) as waterObject, open(ff_file) as ffObject:
 				_ref_data 				=	[data.split() for data in waterObject.readlines()]
@@ -575,6 +577,7 @@ def run_and_collect(*args) -> typing.List[float]:
 				error_pressure[system] = error_pressure[system]/6
 
 	# Now take care of reactions
+	#Maxime: corrected weights
 	reaction_energies	=	[
 							10.0 * error_energy["gibSEowCNAlAltraj"],
 							10.0 * error_energy["gibSEowtraj"],
@@ -611,7 +614,7 @@ def run_and_collect(*args) -> typing.List[float]:
 							0.50 * (1 * (ener_dat["gib825"][0] 	- (ener_dat["gibbulk"][0]))		- (energy_reference["gib825"])),
 							0.25 * (1 * (ener_dat["gib110"][0] 	- (ener_dat["gibbulk"][0]))		- (energy_reference["gib110"]))
 							]
-	#print(reaction_energies)
+
 	# Now compute error terms
 	fmax_error		=	numpy.mean(numpy.array([value**2 for value in fmax_values]))
 	charge_error	=	numpy.sqrt(numpy.mean(numpy.array([charge**2 for (key,value) in error_charge.items() for charge in value])))
@@ -633,55 +636,38 @@ def run_and_collect(*args) -> typing.List[float]:
 
 	final_error		=	100 * sum(errors) / sum(weights)
 	errors.append(final_error)
-	error_names = [ 'charge', 'react', 'force', 'fmax', 'press', 'total' ]
 
-  #### PRINTING #####
-	#Print all energy errors
-	#pprint.pprint (reaction_energies)
+	if final_error < error_best[-1]:
+		error_best.append(final_error)
 
-	#Print all errors# 
-	print(''.join(f"{error:15.3f}" for error in errors))
-	write_header = not os.path.exists("../errors.out") or os.stat("../errors.out").st_size == 0
+		# print out the best error and parameters
+		with open("parameter_set_reoptimization_fixed_maxime_global_best.dat","w") as bestParam:
+			bestParam.write(''.join(f"{param:10.4f}" for param in args[0]))
+			bestParam.write("\n")
 
-	#Print all errors+parameters to file# 
-	with open("../errors.out", "a") as errorObject:
-		if write_header:
-			errorObject.write(''.join(f"{name:10}" for name in error_names) )
-			errorObject.write(" | ")
-			errorObject.write(''.join(f"{key:15}" for key in keys) )
+		with open("errors_reoptimization_fixed_maxime_global_best.dat", "w") as errorObject:
+			errorObject.write(''.join(f"{error:15.3f}" for error in errors))
 			errorObject.write("\n")
 
+  #### PRINTING #####
+	#Print all errors
+	print(''.join(f"{error:15.3f}" for error in errors))
+	with open("errors_reoptimization_fixed_maxime_global.dat", "a") as errorObject:
 		errorObject.write(''.join(f"{error:15.3f}" for error in errors))
-		errorObject.write(" | ")
-		errorObject.write(''.join(f"{param:10.4f}" for param in args[0]))
 		errorObject.write("\n")
-
-  # Write param.tmp (same format as param.ini)
-	with open("../param.out", 'w') as file:
-		for key, value in zip(keys, args[0]):
-						file.write(f"{key: <10} = {value}\n")
-
-#print(f"{'Left Aligned Text' : <20}") 
-
 	return final_error
 
 def main() -> None:
-
-	if not os.path.exists("lmprun"):
-		os.makedirs("lmprun")
-	os.chdir("lmprun")
-
 	clean_slate()	# remove files from previous runs
   
-	run_and_collect(paramVector_2)
-	exit()
+	# param_optimizer(paramVector_2)
+	# sys.exit()
 
-	# margin		=	float(sys.argv[1])	# get the margin for fitting from user
-	#first_minimization	=	scipy.optimize.minimize(run_and_collect, paramVector_2, method='Nelder-Mead',options={'adaptive': True,'maxiter': 1000, 'fatol':1e-3, 'xatol':1e-3})
-	#print(first_minimization.x)
+	margin		=	float(sys.argv[1])	# get the margin for fitting from user
+	# first_minimization	=	scipy.optimize.minimize(param_optimizer, paramVector_2, method='Nelder-Mead',options={'adaptive': True,'maxiter': 1000, 'fatol':1e-3, 'xatol':1e-3})
+	# print(first_minimization.x)
 
-	# first do a global minimization 
-	margin=0.9
+	# # first do a global minimization 
 	optimizer			=	nlopt.opt(nlopt.G_MLSL_LDS, paramVector_2.size)	
 	local_optimizer		=	nlopt.opt(nlopt.LN_SBPLX, paramVector_2.size)
 	optimizer.set_local_optimizer(local_optimizer)
@@ -692,7 +678,7 @@ def main() -> None:
 
 	optimizer.set_lower_bounds(minParams)
 	optimizer.set_upper_bounds(maxParams)
-	optimizer.set_min_objective(run_and_collect)
+	optimizer.set_min_objective(param_optimizer)
 
 	# Now perform the optimization
 	optimized_values	=	optimizer.optimize(paramVector_2)
